@@ -1,0 +1,272 @@
+/* Video Scanner Fix - Admin Interface Stylesheet */
+
+.vsf-admin-wrap {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    margin-top: 20px;
+    max-width: 1200px;
+}
+
+.vsf-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #ffffff;
+    padding: 18px 24px;
+    border-radius: 8px;
+    border: 1px solid #dcdcde;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.vsf-header-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.vsf-header-icon {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+    color: #2271b1;
+}
+
+.vsf-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+    color: #1d2327;
+}
+
+.vsf-version-badge {
+    background: #e7f1fe;
+    color: #2271b1;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-left: 8px;
+}
+
+.vsf-author-tag {
+    font-size: 13px;
+    color: #646970;
+}
+
+.vsf-nav-tabs {
+    margin-bottom: 20px !important;
+    border-bottom: 1px solid #c3c4c7;
+}
+
+.vsf-nav-tabs .nav-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+    padding: 8px 16px;
+}
+
+.vsf-card {
+    background: #ffffff;
+    border: 1px solid #c3c4c7;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.vsf-card h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 0;
+    margin-bottom: 12px;
+    color: #1d2327;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vsf-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.vsf-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    border-left: 4px solid #2271b1;
+    margin-bottom: 0;
+}
+
+.vsf-stat-total { border-left-color: #2271b1; }
+.vsf-stat-broken { border-left-color: #d63638; }
+.vsf-stat-valid { border-left-color: #00a32a; }
+.vsf-stat-cron { border-left-color: #dba617; }
+
+.vsf-stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #f0f6fc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vsf-stat-icon .dashicons {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    color: #2271b1;
+}
+
+.vsf-stat-data {
+    display: flex;
+    flex-direction: column;
+}
+
+.vsf-stat-number {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1d2327;
+    line-height: 1.2;
+}
+
+.vsf-stat-status {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1d2327;
+}
+
+.vsf-stat-label {
+    font-size: 13px;
+    color: #646970;
+}
+
+.vsf-scanner-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #f6f7f7;
+    padding: 16px;
+    border-radius: 6px;
+    border: 1px solid #dcdcde;
+}
+
+.vsf-progress-bar-bg {
+    width: 100%;
+    height: 16px;
+    background: #dcdcde;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.vsf-progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2271b1, #135e96);
+    transition: width 0.3s ease;
+}
+
+.vsf-progress-status {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 13px;
+    color: #50575e;
+}
+
+.vsf-log-box {
+    border: 1px solid #c3c4c7;
+    border-radius: 6px;
+    background: #1e1e1e;
+    color: #f0f0f0;
+    font-family: monospace;
+    overflow: hidden;
+}
+
+.vsf-log-header {
+    background: #2d2d2d;
+    padding: 10px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #404040;
+}
+
+.vsf-log-header h3 {
+    margin: 0;
+    font-size: 14px;
+    color: #ffffff;
+}
+
+.vsf-live-tag {
+    background: #00a32a;
+    color: #ffffff;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.vsf-log-feed {
+    padding: 16px;
+    max-height: 350px;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.vsf-log-entry {
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #333;
+}
+
+.vsf-log-entry-broken { color: #ff6b6b; }
+.vsf-log-entry-valid { color: #51cf66; }
+.vsf-log-entry-ignored { color: #fcc419; }
+.vsf-log-entry-info { color: #339af0; }
+
+.vsf-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.vsf-badge-danger { background: #fcf0f0; color: #d63638; border: 1px solid #f8cbad; }
+.vsf-badge-success { background: #edfaef; color: #00a32a; border: 1px solid #b7ebc6; }
+.vsf-badge-warning { background: #fff9db; color: #f59f00; border: 1px solid #ffe066; }
+
+.vsf-url-truncate {
+    display: inline-block;
+    max-width: 280px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+}
+
+.vsf-btn-full {
+    width: 100%;
+    text-align: center;
+}
+
+.vsf-metabox-wrapper {
+    padding: 6px 0;
+}
+
+.vsf-metabox-results-box {
+    margin-top: 12px;
+    padding: 10px;
+    background: #f6f7f7;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    font-size: 12px;
+}
