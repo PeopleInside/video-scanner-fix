@@ -30,6 +30,32 @@ class Video_Scanner_Fix_Admin {
         }
     }
 
+    public static function get_last_scan_display() {
+        $last_scan = get_option('vsf_last_scan_time');
+        if (!$last_scan) {
+            return __('Never', 'video-scanner-fix');
+        }
+        $timestamp = strtotime($last_scan);
+        if (!$timestamp) {
+            return __('Never', 'video-scanner-fix');
+        }
+        $date_format = get_option('date_format') . ' ' . get_option('time_format');
+        return date_i18n($date_format, $timestamp);
+    }
+
+    public static function get_next_scan_display() {
+        $settings = get_option('vsf_settings', array());
+        if (empty($settings['cron_enabled'])) {
+            return __('Disabled', 'video-scanner-fix');
+        }
+        $timestamp = wp_next_scheduled('vsf_cron_scan_event');
+        if (!$timestamp) {
+            return __('Not Scheduled', 'video-scanner-fix');
+        }
+        $date_format = get_option('date_format') . ' ' . get_option('time_format');
+        return date_i18n($date_format, $timestamp);
+    }
+
     public function render_dashboard_widget() {
         $stats = Video_Scanner_Fix_Logger::get_stats();
         $admin_url = admin_url('admin.php?page=video-scanner-fix');
@@ -58,6 +84,16 @@ class Video_Scanner_Fix_Admin {
                 <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:10px 5px;">
                     <span style="font-size:18px; font-weight:bold; color:#b45309; display:block;"><?php echo esc_html(isset($stats['ignored']) ? $stats['ignored'] : 0); ?></span>
                     <span style="font-size:11px; color:#b45309; text-transform:uppercase; font-weight:600;"><?php _e('Ignored', 'video-scanner-fix'); ?></span>
+                </div>
+            </div>
+            <div style="margin:10px 0; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:8px 12px; font-size:12px; color:#475569; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                <div>
+                    <strong><?php _e('Last Scan:', 'video-scanner-fix'); ?></strong>
+                    <span><?php echo esc_html(self::get_last_scan_display()); ?></span>
+                </div>
+                <div>
+                    <strong><?php _e('Next Scheduled Scan:', 'video-scanner-fix'); ?></strong>
+                    <span><?php echo esc_html(self::get_next_scan_display()); ?></span>
                 </div>
             </div>
             <div style="display:flex; gap:10px; margin-top:12px; border-top:1px solid #f0f0f1; padding-top:10px; flex-wrap:wrap;">
@@ -98,10 +134,25 @@ class Video_Scanner_Fix_Admin {
                 'admin_nonce' => wp_create_nonce('vsf_admin_nonce'),
                 'meta_nonce'  => wp_create_nonce('vsf_meta_nonce'),
                 'strings'     => array(
-                    'scanning'        => __('Scanning in progress...', 'video-scanner-fix'),
-                    'scan_complete'   => __('Scan completed successfully!', 'video-scanner-fix'),
-                    'confirm_clear'   => __('Are you sure you want to clear all log entries?', 'video-scanner-fix'),
-                    'error_occurred'  => __('An error occurred while scanning.', 'video-scanner-fix')
+                    'scanning'              => __('Scanning in progress...', 'video-scanner-fix'),
+                    'scan_complete'         => __('Scan completed successfully!', 'video-scanner-fix'),
+                    'confirm_clear'         => __('Are you sure you want to clear all log entries?', 'video-scanner-fix'),
+                    'error_occurred'        => __('An error occurred while scanning.', 'video-scanner-fix'),
+                    'no_logs_found'         => __('No log entries found matching criteria.', 'video-scanner-fix'),
+                    'broken'                => __('Broken', 'video-scanner-fix'),
+                    'geo_blocked'           => __('Geo Blocked', 'video-scanner-fix'),
+                    'ignored'               => __('Ignored', 'video-scanner-fix'),
+                    'valid'                 => __('Valid', 'video-scanner-fix'),
+                    'recheck'               => __('Re-check', 'video-scanner-fix'),
+                    'ignore'                => __('Ignore', 'video-scanner-fix'),
+                    'no_title'              => __('(No Title)', 'video-scanner-fix'),
+                    'edit_post'             => __('Edit Post', 'video-scanner-fix'),
+                    'view_public'           => __('View Public', 'video-scanner-fix'),
+                    'edit_post_in_admin'    => __('Edit Post in WP Admin', 'video-scanner-fix'),
+                    'recheck_video_link'    => __('Re-check this video link', 'video-scanner-fix'),
+                    'total_entries'         => __('Total entries: %1$s (Page %2$s of %3$s)', 'video-scanner-fix'),
+                    'error_loading_logs'    => __('Error loading logs', 'video-scanner-fix'),
+                    'ajax_error_logs'       => __('AJAX Error loading log history.', 'video-scanner-fix'),
                 )
             ));
         }
@@ -256,6 +307,23 @@ class Video_Scanner_Fix_Admin {
                 <div class="vsf-stat-data">
                     <span class="vsf-stat-status"><?php echo !empty($settings['cron_enabled']) ? __('Active', 'video-scanner-fix') : __('Disabled', 'video-scanner-fix'); ?></span>
                     <span class="vsf-stat-label"><?php _e('WP-Cron Schedule', 'video-scanner-fix'); ?></span>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex; gap:20px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:14px 20px; margin-top:20px; align-items:center; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span class="dashicons dashicons-calendar-alt" style="color:#0284c7; font-size:22px; width:22px; height:22px;"></span>
+                <div>
+                    <div style="font-size:11px; text-transform:uppercase; color:#64748b; font-weight:600;"><?php _e('Last Scan Date & Time', 'video-scanner-fix'); ?></div>
+                    <div style="font-size:15px; font-weight:700; color:#0f172a;" id="vsf-last-scan-display"><?php echo esc_html(self::get_last_scan_display()); ?></div>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; margin-left:auto;">
+                <span class="dashicons dashicons-backup" style="color:#16a34a; font-size:22px; width:22px; height:22px;"></span>
+                <div>
+                    <div style="font-size:11px; text-transform:uppercase; color:#64748b; font-weight:600;"><?php _e('Next Scheduled Scan', 'video-scanner-fix'); ?></div>
+                    <div style="font-size:15px; font-weight:700; color:#0f172a;" id="vsf-next-scan-display"><?php echo esc_html(self::get_next_scan_display()); ?></div>
                 </div>
             </div>
         </div>
