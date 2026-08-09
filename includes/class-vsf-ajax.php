@@ -193,7 +193,11 @@ class Video_Scanner_Fix_Ajax {
             wp_send_json_error(array('message' => __('Permission denied.', 'video-scanner-fix')));
         }
 
-        wp_send_json_success(Video_Scanner_Fix_Logger::get_stats());
+        $stats = Video_Scanner_Fix_Logger::get_stats();
+        $stats['last_scan'] = Video_Scanner_Fix_Admin::get_last_scan_display();
+        $stats['next_scan'] = Video_Scanner_Fix_Admin::get_next_scan_display();
+
+        wp_send_json_success($stats);
     }
 
     /**
@@ -225,13 +229,17 @@ class Video_Scanner_Fix_Ajax {
             $log['permalink'] = $log['post_id'] ? get_permalink($log['post_id']) : '';
         }
 
+        $stats = Video_Scanner_Fix_Logger::get_stats();
+        $stats['last_scan'] = Video_Scanner_Fix_Admin::get_last_scan_display();
+        $stats['next_scan'] = Video_Scanner_Fix_Admin::get_next_scan_display();
+
         wp_send_json_success(array(
             'logs'        => $logs,
             'page'        => $page,
             'limit'       => $limit,
             'total_items' => $total_items,
             'total_pages' => $total_pages,
-            'stats'       => Video_Scanner_Fix_Logger::get_stats()
+            'stats'       => $stats
         ));
     }
 
@@ -336,29 +344,18 @@ class Video_Scanner_Fix_Ajax {
                 $check['post_id'] = $post->ID;
                 $check['post_title'] = $post->post_title;
 
-                if ($check['status'] === 'valid') {
-                    // Fixed! Remove from log
-                    if ($log_id > 0) {
-                        Video_Scanner_Fix_Logger::delete_log($log_id);
-                    }
-                    wp_send_json_success(array(
-                        'resolved' => true,
-                        'message'  => __('Video re-checked: link is working! Removed from log.', 'video-scanner-fix'),
-                        'stats'    => Video_Scanner_Fix_Logger::get_stats()
-                    ));
-                } else {
-                    // Still broken / geo restricted -> update log in DB
-                    if ($log_id > 0) {
-                        Video_Scanner_Fix_Logger::log($check);
-                    }
-                    wp_send_json_success(array(
-                        'resolved' => false,
-                        'message'  => sprintf(__('Video still %s (%s). Log updated.', 'video-scanner-fix'), strtoupper($check['status']), $check['response_code']),
-                        'status'   => $check['status'],
-                        'response_code' => $check['response_code'],
-                        'stats'    => Video_Scanner_Fix_Logger::get_stats()
-                    ));
-                }
+                // Update DB log with latest status (valid, broken, geo_restricted, etc.)
+                $check['post_title'] = $post->post_title;
+                Video_Scanner_Fix_Logger::log($check);
+
+                $status_msg = sprintf(__('Video re-checked: status is %s (%s). Log updated.', 'video-scanner-fix'), strtoupper($check['status']), $check['response_code']);
+                wp_send_json_success(array(
+                    'resolved'      => ($check['status'] === 'valid'),
+                    'message'       => $status_msg,
+                    'status'        => $check['status'],
+                    'response_code' => $check['response_code'],
+                    'stats'         => Video_Scanner_Fix_Logger::get_stats()
+                ));
             }
         } else {
             // No post_id, directly check video URL
@@ -366,27 +363,16 @@ class Video_Scanner_Fix_Ajax {
             $video_id = $log ? $log['video_id'] : '';
             $check = $scanner->verify_video(array('platform' => $platform, 'url' => $video_url, 'video_id' => $video_id));
 
-            if ($check['status'] === 'valid') {
-                if ($log_id > 0) {
-                    Video_Scanner_Fix_Logger::delete_log($log_id);
-                }
-                wp_send_json_success(array(
-                    'resolved' => true,
-                    'message'  => __('Video re-checked: link is working! Removed from log.', 'video-scanner-fix'),
-                    'stats'    => Video_Scanner_Fix_Logger::get_stats()
-                ));
-            } else {
-                if ($log_id > 0) {
-                    Video_Scanner_Fix_Logger::log($check);
-                }
-                wp_send_json_success(array(
-                    'resolved' => false,
-                    'message'  => sprintf(__('Video still %s (%s).', 'video-scanner-fix'), strtoupper($check['status']), $check['response_code']),
-                    'status'   => $check['status'],
-                    'response_code' => $check['response_code'],
-                    'stats'    => Video_Scanner_Fix_Logger::get_stats()
-                ));
-            }
+            Video_Scanner_Fix_Logger::log($check);
+
+            $status_msg = sprintf(__('Video re-checked: status is %s (%s). Log updated.', 'video-scanner-fix'), strtoupper($check['status']), $check['response_code']);
+            wp_send_json_success(array(
+                'resolved'      => ($check['status'] === 'valid'),
+                'message'       => $status_msg,
+                'status'        => $check['status'],
+                'response_code' => $check['response_code'],
+                'stats'         => Video_Scanner_Fix_Logger::get_stats()
+            ));
         }
     }
 }

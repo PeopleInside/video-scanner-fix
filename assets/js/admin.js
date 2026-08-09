@@ -46,7 +46,7 @@
             }
         });
 
-        // Update Dashboard Stats Card numbers
+        // Update Dashboard Stats Card numbers & Scan dates
         function updateDashboardStats(stats) {
             if (!stats) return;
             if (stats.total !== undefined) $('.vsf-stat-total .vsf-stat-number').text(stats.total);
@@ -54,6 +54,8 @@
             if (stats.valid !== undefined) $('.vsf-stat-valid .vsf-stat-number').text(stats.valid);
             if (stats.geo_restricted !== undefined) $('.vsf-stat-clickable[data-filter="geo_restricted"] .vsf-stat-number').text(stats.geo_restricted);
             if (stats.ignored !== undefined) $('.vsf-stat-clickable[data-filter="ignored"] .vsf-stat-number').text(stats.ignored);
+            if (stats.last_scan !== undefined) $('#vsf-last-scan-display').text(stats.last_scan);
+            if (stats.next_scan !== undefined) $('#vsf-next-scan-display').text(stats.next_scan);
         }
 
         function fetchDashboardStats() {
@@ -89,7 +91,7 @@
                     updateDashboardStats(data.stats);
 
                     if (logs.length === 0) {
-                        $tbody.html('<tr class="vsf-no-logs"><td colspan="6" style="text-align:center; padding:20px; color:#888;">No log entries found matching criteria.</td></tr>');
+                        $tbody.html('<tr class="vsf-no-logs"><td colspan="6" style="text-align:center; padding:20px; color:#888;">' + (vsf_vars.strings.no_logs_found || 'No log entries found matching criteria.') + '</td></tr>');
                     } else {
                         var html = '';
                         logs.forEach(function(log) {
@@ -98,39 +100,39 @@
                             var actionBtns = '';
 
                             if (statusLower === 'broken') {
-                                badgeHtml = '<span class="vsf-badge vsf-badge-danger">Broken</span>';
+                                badgeHtml = '<span class="vsf-badge vsf-badge-danger">' + (vsf_vars.strings.broken || 'Broken') + '</span>';
                             } else if (statusLower === 'geo_restricted') {
-                                badgeHtml = '<span class="vsf-badge" style="background:#f3e8ff; color:#7e22ce; border:1px solid #d8b4fe;">Geo Blocked</span>';
+                                badgeHtml = '<span class="vsf-badge" style="background:#f3e8ff; color:#7e22ce; border:1px solid #d8b4fe;">' + (vsf_vars.strings.geo_blocked || 'Geo Blocked') + '</span>';
                             } else if (statusLower === 'ignored') {
-                                badgeHtml = '<span class="vsf-badge vsf-badge-warning">Ignored</span>';
+                                badgeHtml = '<span class="vsf-badge vsf-badge-warning">' + (vsf_vars.strings.ignored || 'Ignored') + '</span>';
                             } else {
-                                badgeHtml = '<span class="vsf-badge vsf-badge-success">Valid</span>';
+                                badgeHtml = '<span class="vsf-badge vsf-badge-success">' + (vsf_vars.strings.valid || 'Valid') + '</span>';
                             }
 
-                            var recheckBtn = '<button type="button" class="button button-small vsf-recheck-btn" data-log-id="' + escapeHtml(log.id) + '" data-post-id="' + escapeHtml(log.post_id || '') + '" data-url="' + escapeHtml(log.video_url) + '" title="Re-check this video link"><span class="dashicons dashicons-update" style="font-size:12px; width:12px; height:12px; line-height:20px;"></span> Ricontrolla</button>';
+                            var recheckBtn = '<button type="button" class="button button-small vsf-recheck-btn" data-log-id="' + escapeHtml(log.id) + '" data-post-id="' + escapeHtml(log.post_id || '') + '" data-url="' + escapeHtml(log.video_url) + '" title="' + escapeHtml(vsf_vars.strings.recheck_video_link || 'Re-check this video link') + '"><span class="dashicons dashicons-update" style="font-size:12px; width:12px; height:12px; line-height:20px;"></span> ' + escapeHtml(vsf_vars.strings.recheck || 'Re-check') + '</button>';
 
                             var ignoreBtn = '';
                             if (statusLower !== 'ignored') {
-                                ignoreBtn = '<button type="button" class="button button-small vsf-ignore-video-btn" data-url="' + escapeHtml(log.video_url) + '" data-log-id="' + escapeHtml(log.id) + '">Ignora</button>';
+                                ignoreBtn = '<button type="button" class="button button-small vsf-ignore-video-btn" data-url="' + escapeHtml(log.video_url) + '" data-log-id="' + escapeHtml(log.id) + '">' + escapeHtml(vsf_vars.strings.ignore || 'Ignore') + '</button>';
                             }
 
                             actionBtns = '<div style="margin-top:6px; display:flex; gap:4px; flex-wrap:wrap;">' + recheckBtn + ignoreBtn + '</div>';
 
-                            var titleText = escapeHtml(log.post_title || '(No Title)');
+                            var titleText = escapeHtml(log.post_title || (vsf_vars.strings.no_title || '(No Title)'));
                             var titleHtml = titleText;
 
                             if (log.post_id) {
                                 var editLink = log.edit_link ? escapeHtml(log.edit_link) : '';
                                 var permalink = log.permalink ? escapeHtml(log.permalink) : '';
 
-                                var titleLink = editLink ? '<a href="' + editLink + '" target="_blank" title="Edit Post in WP Admin"><strong>' + titleText + '</strong></a>' : '<strong>' + titleText + '</strong>';
+                                var titleLink = editLink ? '<a href="' + editLink + '" target="_blank" title="' + escapeHtml(vsf_vars.strings.edit_post_in_admin || 'Edit Post in WP Admin') + '"><strong>' + titleText + '</strong></a>' : '<strong>' + titleText + '</strong>';
 
                                 var subLinks = [];
                                 if (editLink) {
-                                    subLinks.push('<a href="' + editLink + '" target="_blank" class="button button-small" style="font-size:11px; padding:0 6px; height:22px; line-height:20px;"><span class="dashicons dashicons-edit" style="font-size:12px; vertical-align:middle; width:12px; height:12px; line-height:20px; margin-right:2px;"></span>Edit Post</a>');
+                                    subLinks.push('<a href="' + editLink + '" target="_blank" class="button button-small" style="font-size:11px; padding:0 6px; height:22px; line-height:20px;"><span class="dashicons dashicons-edit" style="font-size:12px; vertical-align:middle; width:12px; height:12px; line-height:20px; margin-right:2px;"></span>' + escapeHtml(vsf_vars.strings.edit_post || 'Edit Post') + '</a>');
                                 }
                                 if (permalink) {
-                                    subLinks.push('<a href="' + permalink + '" target="_blank" class="button button-small" style="font-size:11px; padding:0 6px; height:22px; line-height:20px;"><span class="dashicons dashicons-external" style="font-size:12px; vertical-align:middle; width:12px; height:12px; line-height:20px; margin-right:2px;"></span>View Public</a>');
+                                    subLinks.push('<a href="' + permalink + '" target="_blank" class="button button-small" style="font-size:11px; padding:0 6px; height:22px; line-height:20px;"><span class="dashicons dashicons-external" style="font-size:12px; vertical-align:middle; width:12px; height:12px; line-height:20px; margin-right:2px;"></span>' + escapeHtml(vsf_vars.strings.view_public || 'View Public') + '</a>');
                                 }
 
                                 titleHtml = titleLink + '<div style="margin-top:4px; display:flex; gap:4px; align-items:center;">' + subLinks.join('') + '</div>';
@@ -149,7 +151,11 @@
                     }
 
                     // Update Pagination UI
-                    $('#vsf-pagination-info').text('Total entries: ' + data.total_items + ' (Page ' + data.page + ' of ' + data.total_pages + ')');
+                    var totalMsg = (vsf_vars.strings.total_entries || 'Total entries: %1$s (Page %2$s of %3$s)')
+                        .replace('%1$s', data.total_items)
+                        .replace('%2$s', data.page)
+                        .replace('%3$s', data.total_pages);
+                    $('#vsf-pagination-info').text(totalMsg);
                     $('#vsf-page-current-num').text(data.page);
                     $('#vsf-page-total-num').text(data.total_pages);
 
@@ -162,11 +168,11 @@
                     $('#vsf-page-next').data('page', Math.min(data.total_pages, data.page + 1));
                     $('#vsf-page-last').data('page', data.total_pages);
                 } else {
-                    $tbody.html('<tr><td colspan="6" style="color:red; padding:15px; text-align:center;">' + (response.data.message || 'Error loading logs') + '</td></tr>');
+                    $tbody.html('<tr><td colspan="6" style="color:red; padding:15px; text-align:center;">' + (response.data.message || (vsf_vars.strings.error_loading_logs || 'Error loading logs')) + '</td></tr>');
                 }
             }).fail(function() {
                 $tbody.css('opacity', '1');
-                $tbody.html('<tr><td colspan="6" style="color:red; padding:15px; text-align:center;">AJAX Error loading log history.</td></tr>');
+                $tbody.html('<tr><td colspan="6" style="color:red; padding:15px; text-align:center;">' + (vsf_vars.strings.ajax_error_logs || 'AJAX Error loading log history.') + '</td></tr>');
             });
         }
 

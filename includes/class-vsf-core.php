@@ -16,7 +16,8 @@ class Video_Scanner_Fix_Core {
     }
 
     public function run() {
-        // Load text domain
+        // Load text domain immediately and on init
+        $this->load_textdomain();
         add_action('init', array($this, 'load_textdomain'));
 
         // Admin hooks
@@ -37,10 +38,27 @@ class Video_Scanner_Fix_Core {
     }
 
     public function load_textdomain() {
-        load_plugin_textdomain(
+        $loaded = load_plugin_textdomain(
             'video-scanner-fix',
             false,
             dirname(VSF_PLUGIN_BASENAME) . '/languages'
         );
+
+        if (!$loaded) {
+            $locale = function_exists('determine_locale') ? determine_locale() : (function_exists('get_user_locale') ? get_user_locale() : get_locale());
+            $candidates = array(
+                VSF_PLUGIN_DIR . 'languages/video-scanner-fix-' . $locale . '.mo',
+                VSF_PLUGIN_DIR . 'languages/video-scanner-fix-it_IT.mo',
+                VSF_PLUGIN_DIR . 'languages/it_IT.mo',
+            );
+
+            foreach ($candidates as $mofile) {
+                if (file_exists($mofile)) {
+                    if (load_textdomain('video-scanner-fix', $mofile)) {
+                        break;
+                    }
+                }
+            }
+        }
     }
 }
