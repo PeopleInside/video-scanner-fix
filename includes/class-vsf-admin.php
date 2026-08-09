@@ -33,6 +33,13 @@ class Video_Scanner_Fix_Admin {
     public static function get_last_scan_display() {
         $last_scan = get_option('vsf_last_scan_time');
         if (!$last_scan) {
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'vsf_logs';
+            if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
+                $last_scan = $wpdb->get_var("SELECT MAX(checked_at) FROM {$table_name}");
+            }
+        }
+        if (!$last_scan) {
             return __('Never', 'video-scanner-fix');
         }
         $timestamp = strtotime($last_scan);
