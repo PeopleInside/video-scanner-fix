@@ -235,7 +235,14 @@ class Video_Scanner_Fix_Scanner {
         
         // If API key is present, use official YouTube v3 API
         if (!empty($api_key) && !empty($video_id)) {
-            $api_url = "https://www.googleapis.com/youtube/v3/videos?id={$video_id}&key={$api_key}&part=contentDetails,status,id";
+            $api_url = add_query_arg(
+                array(
+                    'id'   => rawurlencode($video_id),
+                    'key'  => rawurlencode($api_key),
+                    'part' => 'contentDetails,status,id',
+                ),
+                'https://www.googleapis.com/youtube/v3/videos'
+            );
             $response = wp_remote_get($api_url, array('timeout' => 8));
 
             if (!is_wp_error($response)) {
