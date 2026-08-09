@@ -27,6 +27,7 @@ require_once VSF_PLUGIN_DIR . 'includes/class-vsf-cron.php';
 require_once VSF_PLUGIN_DIR . 'includes/class-vsf-ajax.php';
 require_once VSF_PLUGIN_DIR . 'includes/class-vsf-admin.php';
 require_once VSF_PLUGIN_DIR . 'includes/class-vsf-core.php';
+require_once VSF_PLUGIN_DIR . 'includes/class-vsf-updater.php';
 
 /**
  * Main plugin activation hook
@@ -71,5 +72,11 @@ register_deactivation_hook(__FILE__, 'vsf_deactivate_plugin');
 function vsf_init() {
     $plugin = new Video_Scanner_Fix_Core();
     $plugin->run();
+
+    // Gli hook di aggiornamento (transient, plugins_api, upgrader_*) servono
+    // solo in wp-admin.
+    if (is_admin()) {
+        Video_Scanner_Fix_Updater::instance();
+    }
 }
 add_action('plugins_loaded', 'vsf_init');
