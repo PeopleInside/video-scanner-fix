@@ -3,7 +3,7 @@
  * Plugin Name: Video Scanner Fix
  * Plugin URI:  https://github.com/peopleinside/video-scanner-fix
  * Description: Scans WordPress posts and custom fields for broken video links and embeds, featuring automated schedules, real-time manual scanning, and action triggers.
- * Version:     1.0.0
+ * Version:     1.0.1
  * Author:      peopleinside
  * Author URI:  https://github.com/peopleinside
  * License:     GPL-2.0-or-later
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
-define('VSF_VERSION', '1.0.0');
+define('VSF_VERSION', '1.0.1');
 define('VSF_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('VSF_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('VSF_PLUGIN_BASENAME', plugin_basename(__FILE__));
