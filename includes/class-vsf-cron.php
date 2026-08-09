@@ -50,6 +50,8 @@ class Video_Scanner_Fix_Cron {
             return;
         }
 
+        update_option('vsf_last_scan_time', current_time('mysql'));
+
         $post_types = isset($settings['scan_post_types']) ? (array)$settings['scan_post_types'] : array('post');
         $statuses   = isset($settings['scan_post_statuses']) ? (array)$settings['scan_post_statuses'] : array('publish');
         $batch_size = isset($settings['batch_size']) ? intval($settings['batch_size']) : 30;
