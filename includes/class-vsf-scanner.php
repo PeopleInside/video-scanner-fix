@@ -139,22 +139,71 @@ class Video_Scanner_Fix_Scanner {
             $this->apply_broken_actions($post, $post_has_broken, $post_has_geo);
         }
 
-        // Clean up old log entries for this post that are no longer broken/geo_restricted (fixed or removed)
+        // Clean up old log entries for this post that are no longer broken/geo_restricted
+        // (genuinely fixed, or genuinely removed from the content).
+        //
+        // IMPORTANT: this must NOT delete an old broken/geo_restricted entry just because
+        // it wasn't found in *this* pass. A video might be missing from $results simply
+        // because its platform is currently disabled in settings, or because the
+        // verification call failed/timed-out/hit a rate limit (e.g. YouTube API quota) -
+        // none of which means the issue was actually resolved. We only delete when either:
+        //   a) the video was actually re-checked this pass and is no longer broken/geo, or
+        //   b) the video URL is genuinely no longer present anywhere in the post content,
+        //      checked against ALL known platforms (not just the enabled ones), so a
+        //      disabled platform can't make its videos look "removed".
         if ($post->ID > 0) {
             global $wpdb;
             $table = Video_Scanner_Fix_Logger::get_table_name();
             $old_logs = $wpdb->get_results($wpdb->prepare("SELECT id, video_url FROM {$table} WHERE post_id = %d AND status IN ('broken', 'geo_restricted')", $post->ID), ARRAY_A);
+
             if (!empty($old_logs)) {
                 $current_unhealthy_urls = array();
+                $rechecked_urls = array();
                 foreach ($results as $res) {
+                    $rechecked_urls[] = $res['video_url'];
                     if ($res['status'] === 'broken' || $res['status'] === 'geo_restricted') {
                         $current_unhealthy_urls[] = $res['video_url'];
                     }
                 }
+
+                // Presence check across ALL platforms (ignores the enabled_platforms
+                // filter) so a temporarily-disabled platform doesn't make its videos
+                // look removed from the content.
+                $all_platform_keys = array_keys($this->get_patterns());
+                $all_found = $this->extract_videos_from_text($content, $all_platform_keys);
+                if (!empty($meta_keys)) {
+                    foreach ($keys as $key) {
+                        if (empty($key)) continue;
+                        $meta_value = get_post_meta($post->ID, $key, true);
+                        if (is_string($meta_value) && !empty($meta_value)) {
+                            $all_found = array_merge($all_found, $this->extract_videos_from_text($meta_value, $all_platform_keys));
+                        }
+                    }
+                }
+                $all_found_urls = wp_list_pluck($all_found, 'url');
+
                 foreach ($old_logs as $old_log) {
-                    if (!in_array($old_log['video_url'], $current_unhealthy_urls)) {
+                    $url = $old_log['video_url'];
+
+                    if (in_array($url, $current_unhealthy_urls, true)) {
+                        continue; // Still broken/geo - kept as-is (already re-logged above).
+                    }
+
+                    if (in_array($url, $rechecked_urls, true)) {
+                        // Actually re-checked this pass and no longer broken/geo -> genuinely fixed.
+                        Video_Scanner_Fix_Logger::delete_log($old_log['id']);
+                        continue;
+                    }
+
+                    if (!in_array($url, $all_found_urls, true)) {
+                        // Not checked this pass (its platform is likely disabled) AND
+                        // genuinely absent from the content -> removed from the post.
                         Video_Scanner_Fix_Logger::delete_log($old_log['id']);
                     }
+
+                    // Otherwise: still present in the content but not checked this pass
+                    // (its platform is disabled in settings, or the check failed) ->
+                    // keep the historical broken/geo entry untouched.
                 }
             }
         }
