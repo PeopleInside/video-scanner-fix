@@ -26,6 +26,7 @@ class Video_Scanner_Fix_Core {
             add_action('admin_enqueue_scripts', array($this->admin, 'enqueue_assets'));
             add_action('add_meta_boxes', array($this->admin, 'add_meta_box'));
             add_filter('plugin_action_links_' . VSF_PLUGIN_BASENAME, array($this->admin, 'add_plugin_action_links'));
+            add_action('admin_post_vsf_export_logs_csv', array($this->admin, 'export_logs_csv'));
         }
 
         // AJAX handlers
