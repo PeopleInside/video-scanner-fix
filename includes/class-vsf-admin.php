@@ -524,6 +524,9 @@ class Video_Scanner_Fix_Admin {
                     <button type="button" class="button button-secondary" id="vsf-refresh-logs-btn">
                         <span class="dashicons dashicons-update" style="margin-top:3px;"></span> <?php _e('Refresh Logs', 'video-scanner-fix'); ?>
                     </button>
+                    <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=vsf_export_logs_csv'), 'vsf_export_logs_csv_action', 'vsf_export_nonce')); ?>" class="button button-secondary">
+                        <span class="dashicons dashicons-media-spreadsheet" style="margin-top:3px;"></span> <?php _e('Export CSV', 'video-scanner-fix'); ?>
+                    </a>
                     <button type="button" class="button button-secondary" id="vsf-clear-logs-btn">
                         <span class="dashicons dashicons-trash"></span> <?php _e('Clear Log History', 'video-scanner-fix'); ?>
                     </button>
@@ -648,6 +651,59 @@ class Video_Scanner_Fix_Admin {
             </div>
         </div>
         <?php
+    }
+
+    /**
+     * Streams the full Log History table as a CSV download.
+     * Hooked to admin-post.php?action=vsf_export_logs_csv
+     */
+    public function export_logs_csv() {
+        if (!current_user_can('manage_options')) {
+            wp_die(__('You do not have sufficient permissions to perform this action.', 'video-scanner-fix'));
+        }
+
+        check_admin_referer('vsf_export_logs_csv_action', 'vsf_export_nonce');
+
+        // limit = 0 -> Video_Scanner_Fix_Logger::get_logs() returns every row, unpaginated.
+        $logs = Video_Scanner_Fix_Logger::get_logs(0, 0, 'all', '');
+
+        nocache_headers();
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=video-scanner-fix-logs-' . gmdate('Y-m-d') . '.csv');
+
+        $output = fopen('php://output', 'w');
+
+        // UTF-8 BOM so the file opens correctly with accented characters in Excel.
+        fwrite($output, "\xEF\xBB\xBF");
+
+        fputcsv($output, array(
+            __('ID', 'video-scanner-fix'),
+            __('Status', 'video-scanner-fix'),
+            __('Platform', 'video-scanner-fix'),
+            __('Post ID', 'video-scanner-fix'),
+            __('Post Title', 'video-scanner-fix'),
+            __('Video URL', 'video-scanner-fix'),
+            __('Response Code', 'video-scanner-fix'),
+            __('Error Message', 'video-scanner-fix'),
+            __('Checked At', 'video-scanner-fix'),
+        ));
+
+        foreach ($logs as $log) {
+            fputcsv($output, array(
+                $log['id'],
+                $log['status'],
+                $log['platform'],
+                $log['post_id'],
+                $log['post_title'],
+                $log['video_url'],
+                $log['response_code'],
+                $log['error_message'],
+                $log['created_at'],
+            ));
+        }
+
+        fclose($output);
+        exit;
     }
 
     protected function save_settings() {
