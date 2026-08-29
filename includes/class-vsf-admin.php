@@ -42,14 +42,21 @@ class Video_Scanner_Fix_Admin {
             }
         }
 
-        // If no option or invalid timestamp, fall back to MAX(created_at) from vsf_logs table
+        // If no option or invalid timestamp, fall back to MAX(created_at) from vsf_logs table.
+        // NOTE: created_at is stored via current_time('mysql'), i.e. already in the SITE'S
+        // local timezone. WordPress forces PHP's default timezone to UTC, so a plain
+        // strtotime() on that string would misinterpret it as UTC and get shifted again
+        // by wp_date() below, producing a value off by 2x the site's UTC offset.
+        // We first convert the local MySQL string to a true GMT/UTC timestamp with
+        // get_gmt_from_date(), then strtotime() it safely as UTC.
         if (!$timestamp) {
             global $wpdb;
             $table_name = Video_Scanner_Fix_Logger::get_table_name();
             if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
                 $max_created = $wpdb->get_var("SELECT MAX(created_at) FROM {$table_name}");
                 if ($max_created) {
-                    $timestamp = strtotime($max_created);
+                    $gmt_created = function_exists('get_gmt_from_date') ? get_gmt_from_date($max_created) : $max_created;
+                    $timestamp = strtotime($gmt_created . ' UTC');
                 }
             }
         }
@@ -808,6 +815,8 @@ class Video_Scanner_Fix_Admin {
 
     protected function save_settings() {
         $settings = get_option('vsf_settings', array());
+        $previous_cron_enabled  = !empty($settings['cron_enabled']);
+        $previous_cron_interval = isset($settings['cron_interval']) ? $settings['cron_interval'] : 'daily';
         $tab = isset($_POST['vsf_form_tab']) ? sanitize_text_field($_POST['vsf_form_tab']) : '';
 
         // Save platform settings if platforms form submitted
@@ -840,10 +849,20 @@ class Video_Scanner_Fix_Admin {
 
         update_option('vsf_settings', $settings);
 
-        // Update cron schedule
-        Video_Scanner_Fix_Cron::clear_schedule();
-        if (!empty($settings['cron_enabled'])) {
-            Video_Scanner_Fix_Cron::register_schedule();
+        // Only touch the cron schedule if cron-related settings actually changed.
+        // Previously this ran unconditionally on every settings save (even for
+        // unrelated tabs like the YouTube API key), which reset the "next run"
+        // anchor to now+60s every time and broke the intended weekly/monthly
+        // cadence. Now we only reschedule when enabled state or interval changed.
+        $new_cron_enabled  = !empty($settings['cron_enabled']);
+        $new_cron_interval = isset($settings['cron_interval']) ? $settings['cron_interval'] : 'daily';
+        $cron_settings_changed = ($new_cron_enabled !== $previous_cron_enabled) || ($new_cron_interval !== $previous_cron_interval);
+
+        if ($cron_settings_changed) {
+            Video_Scanner_Fix_Cron::clear_schedule();
+            if ($new_cron_enabled) {
+                Video_Scanner_Fix_Cron::register_schedule();
+            }
         }
     }
 }
