@@ -89,6 +89,22 @@ class Video_Scanner_Fix_Ajax {
         $is_completed   = ($scanned_so_far >= $total_posts) || !$batch_query->have_posts();
         $progress_pct   = $total_posts > 0 ? round(($scanned_so_far / $total_posts) * 100) : 100;
 
+        if ($is_completed) {
+            update_option('vsf_last_scan_time', time());
+            $current_db_stats = Video_Scanner_Fix_Logger::get_stats();
+            update_option('vsf_last_scan_stats', array(
+                'posts_scanned'   => $scanned_so_far,
+                'videos_checked'  => isset($current_db_stats['total']) ? $current_db_stats['total'] : 0,
+                'broken_found'    => isset($current_db_stats['broken']) ? $current_db_stats['broken'] : 0,
+                'completed_at'    => time(),
+                'type'            => 'manual'
+            ));
+        }
+
+        $stats = Video_Scanner_Fix_Logger::get_stats();
+        $stats['last_scan'] = Video_Scanner_Fix_Admin::get_last_scan_display();
+        $stats['next_scan'] = Video_Scanner_Fix_Admin::get_next_scan_display();
+
         wp_send_json_success(array(
             'completed'            => $is_completed,
             'next_page'            => $page + 1,
@@ -98,7 +114,7 @@ class Video_Scanner_Fix_Ajax {
             'batch_videos_checked' => $batch_videos_checked,
             'batch_broken_found'   => $batch_broken_found,
             'logs'                 => $batch_logs,
-            'stats'                => Video_Scanner_Fix_Logger::get_stats(),
+            'stats'                => $stats,
             'message'              => sprintf(
                 __('Scanned %d of %d posts (%d%% complete)...', 'video-scanner-fix'),
                 $scanned_so_far,

@@ -500,6 +500,12 @@
                         $('#vsf-start-scan-btn').prop('disabled', false);
                         $('#vsf-stop-scan-btn').hide();
                         appendLog('<div class="vsf-log-entry vsf-log-entry-info"><strong>' + vsf_vars.strings.scan_complete + '</strong></div>');
+                        if (typeof fetchDashboardStats === 'function') {
+                            fetchDashboardStats();
+                        }
+                        if (typeof loadLogsPage === 'function') {
+                            loadLogsPage();
+                        }
                     } else {
                         currentPage = data.next_page;
                         setTimeout(runBatchScan, 200);

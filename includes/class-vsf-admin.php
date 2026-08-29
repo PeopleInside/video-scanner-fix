@@ -32,21 +32,36 @@ class Video_Scanner_Fix_Admin {
 
     public static function get_last_scan_display() {
         $last_scan = get_option('vsf_last_scan_time');
-        if (!$last_scan) {
-            global $wpdb;
-            $table_name = $wpdb->prefix . 'vsf_logs';
-            if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
-                $last_scan = $wpdb->get_var("SELECT MAX(checked_at) FROM {$table_name}");
+        $timestamp = 0;
+
+        if (!empty($last_scan)) {
+            if (is_numeric($last_scan)) {
+                $timestamp = intval($last_scan);
+            } else {
+                $timestamp = strtotime($last_scan);
             }
         }
-        if (!$last_scan) {
-            return __('Never', 'video-scanner-fix');
+
+        // If no option or invalid timestamp, fall back to MAX(created_at) from vsf_logs table
+        if (!$timestamp) {
+            global $wpdb;
+            $table_name = Video_Scanner_Fix_Logger::get_table_name();
+            if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
+                $max_created = $wpdb->get_var("SELECT MAX(created_at) FROM {$table_name}");
+                if ($max_created) {
+                    $timestamp = strtotime($max_created);
+                }
+            }
         }
-        $timestamp = strtotime($last_scan);
+
         if (!$timestamp) {
             return __('Never', 'video-scanner-fix');
         }
+
         $date_format = get_option('date_format') . ' ' . get_option('time_format');
+        if (function_exists('wp_date')) {
+            return wp_date($date_format, $timestamp);
+        }
         return date_i18n($date_format, $timestamp);
     }
 
@@ -55,11 +70,21 @@ class Video_Scanner_Fix_Admin {
         if (empty($settings['cron_enabled'])) {
             return __('Disabled', 'video-scanner-fix');
         }
+
         $timestamp = wp_next_scheduled('vsf_cron_scan_event');
+        if (!$timestamp) {
+            Video_Scanner_Fix_Cron::register_schedule();
+            $timestamp = wp_next_scheduled('vsf_cron_scan_event');
+        }
+
         if (!$timestamp) {
             return __('Not Scheduled', 'video-scanner-fix');
         }
+
         $date_format = get_option('date_format') . ' ' . get_option('time_format');
+        if (function_exists('wp_date')) {
+            return wp_date($date_format, $timestamp);
+        }
         return date_i18n($date_format, $timestamp);
     }
 

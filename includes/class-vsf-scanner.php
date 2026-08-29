@@ -171,8 +171,6 @@ class Video_Scanner_Fix_Scanner {
             }
         }
 
-        update_option('vsf_last_scan_time', current_time('mysql'));
-
         return array(
             'post_id'       => $post->ID,
             'post_title'    => $post->post_title,
