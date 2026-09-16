@@ -3,7 +3,7 @@ Contributors: peopleinside
 Tags: video link checker, broken video scanner, youtube scanner, vimeo, video embed checker
 Requires at least: 5.6
 Tested up to: 6.7
-Stable tag: 1.0.5
+Stable tag: 1.0.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -29,6 +29,9 @@ Video Scanner Fix is a powerful, lightweight, and modern WordPress plugin built 
 3. Configure settings under Video Scanner in your WordPress admin bar.
 
 == Changelog ==
+
+= 1.0.6 =
+* Fixed: Automated (scheduled) scans now cover every matching post, just like a manual scan. Previously the automated run scanned everything in a single pass capped at 240 seconds with no resume mechanism, so on hosts with a lower real PHP execution limit — or on sites with many posts — it silently stopped partway through and never finished the full site. The scan now proceeds in short chained batches (like the manual scan) until the entire queue is processed, before recording "Last Scan" and sending the summary email.
 
 = 1.0.5 =
 * Fixed: "Last Scan" date/time could be off by twice the site's UTC offset when falling back to the log table timestamp (double timezone conversion between local `current_time('mysql')` values and `wp_date()`).
