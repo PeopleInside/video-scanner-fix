@@ -9,6 +9,10 @@
  *
  * Adattato da PeopleInside/wp-moderneditor (class-mce-updater.php).
  *
+ * IMPORTANTE: questa classe deve essere istanziata anche fuori da wp-admin
+ * (wp-cron e WP-CLI), altrimenti gli aggiornamenti automatici non partono.
+ * Vedi il commento esteso in video-scanner-fix.php.
+ *
  * Note di sicurezza:
  * - Tutte le richieste avvengono solo in HTTPS, verso api.github.com.
  * - L'URL del pacchetto proviene SEMPRE dalla risposta della API di GitHub
@@ -36,15 +40,24 @@ class Video_Scanner_Fix_Updater {
     const GITHUB_API_URL = 'https://api.github.com/repos/' . self::GITHUB_REPO . '/releases/latest';
 
     /**
-     * Slug/cartella richiesta in wp-content/plugins. Deve combaciare col
-     * nome della cartella del repository (video-scanner-fix), usato anche
-     * per rinominare lo zipball generato da GitHub se necessario.
+     * Slug canonico del plugin, usato per plugins_api. La cartella REALE in
+     * wp-content/plugins può essere diversa (es. "video-scanner-fix-main"
+     * per chi ha installato lo zip di GitHub a mano): per rinominare il
+     * pacchetto scaricato si usa sempre target_dir_name(), non questa costante.
      */
     const PLUGIN_SLUG = 'video-scanner-fix';
 
     /** Cache transient per non interrogare GitHub ad ogni caricamento admin. */
     const CACHE_KEY = 'vsf_github_latest_release';
     const CACHE_TTL = 12 * HOUR_IN_SECONDS;
+
+    /**
+     * TTL breve per ricordare un controllo FALLITO (rete giù, rate limit di
+     * GitHub, risposta non valida). Senza cache negativa ogni caricamento di
+     * wp-admin rifarebbe la chiamata HTTP, rallentando la bacheca e bruciando
+     * il limite di 60 richieste/ora per IP delle API GitHub non autenticate.
+     */
+    const CACHE_FAIL_TTL = 15 * MINUTE_IN_SECONDS;
 
     public static function instance(): Video_Scanner_Fix_Updater {
         if ( null === self::$instance ) {
@@ -66,8 +79,24 @@ class Video_Scanner_Fix_Updater {
     }
 
     /**
+     * Nome REALE della cartella in cui il plugin è installato: è quello che
+     * conta quando si rinomina il pacchetto scaricato. Rinominare sempre in
+     * PLUGIN_SLUG romperebbe le installazioni in cui la cartella si chiama
+     * diversamente (WordPress installerebbe una cartella nuova lasciando il
+     * plugin disattivato).
+     */
+    private function target_dir_name(): string {
+        $dir = dirname( $this->plugin_basename() );
+        if ( '.' === $dir || '' === $dir || '/' === $dir ) {
+            $dir = self::PLUGIN_SLUG;
+        }
+        return $dir;
+    }
+
+    /**
      * Interroga la API GitHub per l'ultima release pubblicata, con cache
-     * transient. Restituisce solo i campi necessari, già validati.
+     * transient (positiva e negativa). Restituisce solo i campi necessari,
+     * già validati.
      *
      * @return array{version: string, package_url: string, html_url: string, body: string}|WP_Error
      */
@@ -75,6 +104,9 @@ class Video_Scanner_Fix_Updater {
         $cached = get_transient( self::CACHE_KEY );
         if ( is_array( $cached ) ) {
             return $cached;
+        }
+        if ( 'skip' === $cached ) {
+            return new WP_Error( 'vsf_github_check_deferred', __( 'Controllo aggiornamenti rinviato dopo un errore recente.', 'video-scanner-fix' ) );
         }
 
         $response = wp_remote_get(
@@ -89,38 +121,40 @@ class Video_Scanner_Fix_Updater {
         );
 
         if ( is_wp_error( $response ) ) {
-            return $response;
+            return $this->remember_failure( $response );
         }
 
         $code = wp_remote_retrieve_response_code( $response );
         if ( 200 !== $code ) {
             if ( 404 === $code ) {
-                return new WP_Error( 'vsf_github_no_release', __( 'Nessuna release pubblicata su GitHub.', 'video-scanner-fix' ) );
+                return $this->remember_failure( new WP_Error( 'vsf_github_no_release', __( 'Nessuna release pubblicata su GitHub.', 'video-scanner-fix' ) ) );
             }
-            return new WP_Error(
-                'vsf_github_http_error',
-                sprintf(
-                    /* translators: %d: codice di stato HTTP */
-                    __( 'GitHub ha risposto con codice %d.', 'video-scanner-fix' ),
-                    $code
+            return $this->remember_failure(
+                new WP_Error(
+                    'vsf_github_http_error',
+                    sprintf(
+                        /* translators: %d: codice di stato HTTP */
+                        __( 'GitHub ha risposto con codice %d.', 'video-scanner-fix' ),
+                        $code
+                    )
                 )
             );
         }
 
         $body = json_decode( (string) wp_remote_retrieve_body( $response ), true );
         if ( ! is_array( $body ) || empty( $body['tag_name'] ) ) {
-            return new WP_Error( 'vsf_github_bad_response', __( 'Risposta di GitHub non valida.', 'video-scanner-fix' ) );
+            return $this->remember_failure( new WP_Error( 'vsf_github_bad_response', __( 'Risposta di GitHub non valida.', 'video-scanner-fix' ) ) );
         }
 
         // Il tag può essere prefissato da "v" (es. "v1.0.1"): normalizziamo.
         $version = preg_replace( '/^v/i', '', (string) $body['tag_name'] );
         if ( ! preg_match( '/^\d+(\.\d+){1,3}$/', $version ) ) {
-            return new WP_Error( 'vsf_github_invalid_version', __( 'Numero di versione della release non valido.', 'video-scanner-fix' ) );
+            return $this->remember_failure( new WP_Error( 'vsf_github_invalid_version', __( 'Numero di versione della release non valido.', 'video-scanner-fix' ) ) );
         }
 
         $package_url = $this->resolve_package_url( $body );
         if ( is_wp_error( $package_url ) ) {
-            return $package_url;
+            return $this->remember_failure( $package_url );
         }
 
         $result = array(
@@ -133,6 +167,18 @@ class Video_Scanner_Fix_Updater {
         set_transient( self::CACHE_KEY, $result, self::CACHE_TTL );
 
         return $result;
+    }
+
+    /**
+     * Memorizza per un breve periodo il fatto che il controllo è fallito e
+     * restituisce l'errore invariato.
+     *
+     * @param WP_Error $error
+     * @return WP_Error
+     */
+    private function remember_failure( WP_Error $error ): WP_Error {
+        set_transient( self::CACHE_KEY, 'skip', self::CACHE_FAIL_TTL );
+        return $error;
     }
 
     /**
@@ -189,6 +235,10 @@ class Video_Scanner_Fix_Updater {
      * Inserisce le informazioni di aggiornamento nel transient
      * "update_plugins" usato dalla pagina Plugin, dagli auto-update e da WP-CLI.
      *
+     * Quando non c'è un aggiornamento disponibile viene comunque popolata la
+     * voce in $transient->no_update, usata da WordPress per la colonna
+     * "Aggiornamenti automatici" e per i controlli interni.
+     *
      * @param object|false $transient
      * @return object|false
      */
@@ -204,30 +254,51 @@ class Video_Scanner_Fix_Updater {
 
         $basename = $this->plugin_basename();
 
-        if ( ! version_compare( $release['version'], VSF_VERSION, '>' ) ) {
-            if ( isset( $transient->response[ $basename ] ) ) {
-                unset( $transient->response[ $basename ] );
-            }
-            return $transient;
-        }
-
-        $item = new stdClass();
-        $item->id          = 'github.com/' . self::GITHUB_REPO;
-        $item->slug        = self::PLUGIN_SLUG;
-        $item->plugin      = $basename;
-        $item->new_version = $release['version'];
-        $item->url         = $release['html_url'];
-        $item->package     = $release['package_url'];
-        $item->tested      = '';
-        $item->icons       = array();
-        $item->banners     = array();
-
         if ( ! isset( $transient->response ) || ! is_array( $transient->response ) ) {
             $transient->response = array();
         }
-        $transient->response[ $basename ] = $item;
+        if ( ! isset( $transient->no_update ) || ! is_array( $transient->no_update ) ) {
+            $transient->no_update = array();
+        }
+
+        if ( ! version_compare( $release['version'], VSF_VERSION, '>' ) ) {
+            unset( $transient->response[ $basename ] );
+            $transient->no_update[ $basename ] = $this->build_item( VSF_VERSION, '', $release['html_url'] );
+            return $transient;
+        }
+
+        unset( $transient->no_update[ $basename ] );
+        $transient->response[ $basename ] = $this->build_item( $release['version'], $release['package_url'], $release['html_url'] );
 
         return $transient;
+    }
+
+    /**
+     * Costruisce l'oggetto atteso da WordPress dentro il transient
+     * "update_plugins" (sia per ->response che per ->no_update).
+     *
+     * Nota: "requires_php" resta volutamente vuoto: se dichiarasse una
+     * versione superiore a quella del server, WordPress scarterebbe
+     * l'aggiornamento automatico in silenzio.
+     *
+     * @param string $version
+     * @param string $package_url URL del pacchetto (vuoto per no_update).
+     * @param string $html_url
+     */
+    private function build_item( string $version, string $package_url, string $html_url ): stdClass {
+        $item = new stdClass();
+        $item->id           = 'github.com/' . self::GITHUB_REPO;
+        $item->slug         = self::PLUGIN_SLUG;
+        $item->plugin       = $this->plugin_basename();
+        $item->new_version  = $version;
+        $item->url          = $html_url;
+        $item->package      = $package_url;
+        $item->tested       = '';
+        $item->requires_php = '';
+        $item->icons        = array();
+        $item->banners      = array();
+        $item->banners_rtl  = array();
+        return $item;
     }
 
     /**
@@ -239,7 +310,10 @@ class Video_Scanner_Fix_Updater {
      * @return false|object|array
      */
     public function inject_plugin_info( $result, string $action, $args ) {
-        if ( 'plugin_information' !== $action || empty( $args->slug ) || self::PLUGIN_SLUG !== $args->slug ) {
+        if ( 'plugin_information' !== $action || empty( $args->slug ) ) {
+            return $result;
+        }
+        if ( self::PLUGIN_SLUG !== $args->slug && $this->target_dir_name() !== $args->slug ) {
             return $result;
         }
 
@@ -248,14 +322,14 @@ class Video_Scanner_Fix_Updater {
             return $result;
         }
 
-        $info                 = new stdClass();
-        $info->name           = 'Video Scanner Fix';
-        $info->slug           = self::PLUGIN_SLUG;
-        $info->version        = $release['version'];
-        $info->author         = '<a href="https://github.com/PeopleInside">PeopleInside</a>';
-        $info->homepage       = $release['html_url'];
-        $info->download_link  = $release['package_url'];
-        $info->sections       = array(
+        $info                = new stdClass();
+        $info->name          = 'Video Scanner Fix';
+        $info->slug          = self::PLUGIN_SLUG;
+        $info->version       = $release['version'];
+        $info->author        = '<a href="https://github.com/PeopleInside">PeopleInside</a>';
+        $info->homepage      = $release['html_url'];
+        $info->download_link = $release['package_url'];
+        $info->sections      = array(
             // Testo della release scritto dal maintainer su GitHub: comunque
             // contenuto remoto, quindi passato a wp_kses_post prima dell'output.
             'description' => wp_kses_post( wpautop( $release['body'] ) ),
@@ -269,6 +343,11 @@ class Video_Scanner_Fix_Updater {
      * del download reale, indipendentemente dalla validazione già fatta
      * in resolve_package_url().
      *
+     * Il riconoscimento usa prima $hook_extra['plugin'] (valorizzato anche
+     * durante gli update automatici) e solo come fallback
+     * $upgrader->skin->plugin, che esiste solo con la skin della pagina
+     * Plugin e non con Automatic_Upgrader_Skin.
+     *
      * @param false|WP_Error $reply
      * @param string          $package
      * @param object          $upgrader
@@ -280,9 +359,13 @@ class Video_Scanner_Fix_Updater {
             return $reply;
         }
 
-        $is_ours = $upgrader instanceof Plugin_Upgrader
-            && ! empty( $upgrader->skin->plugin )
-            && $this->plugin_basename() === $upgrader->skin->plugin;
+        $basename = $this->plugin_basename();
+
+        $is_ours = ( ! empty( $hook_extra['plugin'] ) && $basename === (string) $hook_extra['plugin'] );
+
+        if ( ! $is_ours && $upgrader instanceof Plugin_Upgrader && ! empty( $upgrader->skin->plugin ) ) {
+            $is_ours = ( $basename === $upgrader->skin->plugin );
+        }
 
         if ( ! $is_ours ) {
             return $reply;
@@ -301,8 +384,8 @@ class Video_Scanner_Fix_Updater {
     /**
      * Se il pacchetto installato è lo zipball del sorgente (fallback senza
      * asset .zip dedicato), GitHub lo confeziona con una cartella radice nel
-     * formato "video-scanner-fix-<hash o tag>", diversa dallo slug atteso.
-     * Rinominiamo esplicitamente per evitare ambiguità.
+     * formato "video-scanner-fix-<hash o tag>". La rinominiamo usando il nome
+     * della cartella REALE in cui il plugin è installato.
      *
      * @param string|WP_Error $source
      * @param string          $remote_source
@@ -325,12 +408,13 @@ class Video_Scanner_Fix_Updater {
             return $source;
         }
 
+        $target_dir     = $this->target_dir_name();
         $source_dirname = basename( untrailingslashit( $source ) );
-        if ( self::PLUGIN_SLUG === $source_dirname ) {
+        if ( $target_dir === $source_dirname ) {
             return $source; // Già nel nome corretto (caso dell'asset .zip ufficiale).
         }
 
-        $desired_source = trailingslashit( dirname( untrailingslashit( $source ) ) ) . self::PLUGIN_SLUG . '/';
+        $desired_source = trailingslashit( dirname( untrailingslashit( $source ) ) ) . $target_dir . '/';
 
         if ( $wp_filesystem->exists( $desired_source ) ) {
             $wp_filesystem->delete( $desired_source, true );

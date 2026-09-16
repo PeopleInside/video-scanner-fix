@@ -3,7 +3,7 @@
  * Plugin Name: Video Scanner Fix
  * Plugin URI:  https://github.com/peopleinside/video-scanner-fix
  * Description: Scans WordPress posts and custom fields for broken video links and embeds, featuring automated schedules, real-time manual scanning, and action triggers.
- * Version:     1.0.6
+ * Version:     1.0.7
  * Author:      peopleinside
  * Author URI:  https://github.com/peopleinside
  * License:     GPL-2.0-or-later
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
-define('VSF_VERSION', '1.0.6');
+define('VSF_VERSION', '1.0.7');
 define('VSF_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('VSF_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('VSF_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -81,9 +81,24 @@ function vsf_init() {
     $plugin = new Video_Scanner_Fix_Core();
     $plugin->run();
 
-    // Gli hook di aggiornamento (transient, plugins_api, upgrader_*) servono
-    // solo in wp-admin.
-    if (is_admin()) {
+    /*
+     * L'updater NON va limitato a wp-admin.
+     *
+     * Gli aggiornamenti automatici girano dentro wp-cron.php (e in WP-CLI):
+     * in entrambi i contesti is_admin() vale false. WP_Automatic_Updater::run()
+     * chiama per prima cosa wp_update_plugins(), che RISCRIVE il transient
+     * "update_plugins" facendo scattare pre_set_site_transient_update_plugins.
+     * Se l'updater non è registrato in quel momento, la voce di aggiornamento
+     * iniettata durante una precedente visita in bacheca viene sovrascritta e
+     * sparisce: l'auto-updater legge il transient, non trova nulla per questo
+     * plugin e non aggiorna niente, senza alcun errore. Risultato: il plugin
+     * appare "da aggiornare" in bacheca ma l'auto-update non parte mai.
+     *
+     * Registrarlo sempre non ha costo sul front-end: i filtri agganciati sono
+     * inerti finché WordPress non aggiorna il transient degli aggiornamenti o
+     * non avvia un upgrade.
+     */
+    if (is_admin() || wp_doing_cron() || (defined('WP_CLI') && WP_CLI)) {
         Video_Scanner_Fix_Updater::instance();
     }
 }
