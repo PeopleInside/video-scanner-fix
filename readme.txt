@@ -3,7 +3,7 @@ Contributors: peopleinside
 Tags: video link checker, broken video scanner, youtube scanner, vimeo, video embed checker
 Requires at least: 5.6
 Tested up to: 6.7
-Stable tag: 1.0.6
+Stable tag: 1.0.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -29,6 +29,11 @@ Video Scanner Fix is a powerful, lightweight, and modern WordPress plugin built 
 3. Configure settings under Video Scanner in your WordPress admin bar.
 
 == Changelog ==
+
+= 1.0.8 =
+* Added: The automated scan summary email is now translated. When WordPress (and therefore the plugin) uses Italian, the email subject, body and the scan result messages are sent in Italian; all other languages keep the original English text.
+* Fixed: On WordPress 6.5 and 6.6 sites using a language other than Italian, the plugin could be displayed in Italian.
+* Removed: Unused, duplicate and invalid translation files. Italian is now provided only by `languages/video-scanner-fix-it_IT.po` and `languages/video-scanner-fix-it_IT.l10n.php`.
 
 = 1.0.6 =
 * Fixed: Automated (scheduled) scans now cover every matching post, just like a manual scan. Previously the automated run scanned everything in a single pass capped at 240 seconds with no resume mechanism, so on hosts with a lower real PHP execution limit — or on sites with many posts — it silently stopped partway through and never finished the full site. The scan now proceeds in short chained batches (like the manual scan) until the entire queue is processed, before recording "Last Scan" and sending the summary email.

@@ -509,3 +509,55 @@ msgstr "Ultimo Controllo"
 
 msgid "Actions"
 msgstr "Azioni"
+
+#, php-format
+msgid "[Video Scanner Fix] Automated Scan Summary: %1$d issue(s) detected in %2$d post(s)"
+msgstr "[Video Scanner Fix] Riepilogo scansione automatica: problemi rilevati: %1$d, articoli interessati: %2$d"
+
+msgid "Hello,"
+msgstr "Salve,"
+
+msgid "The automated scan by Video Scanner Fix has completed and detected broken or restricted video links in your content."
+msgstr "La scansione automatica di Video Scanner Fix è stata completata e ha rilevato link video guasti o con restrizioni nei tuoi contenuti."
+
+msgid "SUMMARY REPORT:"
+msgstr "REPORT RIEPILOGATIVO:"
+
+#, php-format
+msgid "POST: %1$s (ID: %2$d)"
+msgstr "ARTICOLO: %1$s (ID: %2$d)"
+
+#, php-format
+msgid "URL:  %s"
+msgstr "URL:       %s"
+
+msgid "ISSUES FOUND:"
+msgstr "PROBLEMI RILEVATI:"
+
+msgid "Geo-Blocked"
+msgstr "Blocco Geo"
+
+msgid "Please log into your WordPress admin dashboard to review and manage these videos."
+msgstr "Accedi alla bacheca di amministrazione di WordPress per verificare e gestire questi video."
+
+msgid "Regards,"
+msgstr "Cordiali saluti,"
+
+msgid "Video removed or private (YouTube API)"
+msgstr "Video rimosso o privato (API YouTube)"
+
+msgid "YouTube video deleted, removed, or invalid ID"
+msgstr "Video YouTube eliminato, rimosso o ID non valido"
+
+msgid "YouTube video private or embedding disabled"
+msgstr "Video YouTube privato o incorporamento disabilitato"
+
+msgid "Vimeo video unavailable, private, or deleted"
+msgstr "Video Vimeo non disponibile, privato o eliminato"
+
+msgid "HTTP status code error"
+msgstr "Errore nel codice di stato HTTP"
+
+#, php-format
+msgid "Restricted in target country (%s)"
+msgstr "Con restrizioni nel paese di destinazione (%s)"
