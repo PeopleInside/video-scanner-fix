@@ -517,37 +517,81 @@ class Video_Scanner_Fix_Scanner {
             $grouped_posts[$pid]['items'][] = $issue;
         }
 
-        $to      = $this->settings['notify_email'];
-        $subject = sprintf('[Video Scanner Fix] Automated Scan Summary: %d issue(s) detected in %d post(s)', count($filtered_issues), count($grouped_posts));
+        $to = $this->settings['notify_email'];
 
-        $message  = "Hello,\n\n";
-        $message .= "The automated scan by Video Scanner Fix has completed and detected broken or restricted video links in your content.\n\n";
-        $message .= "SUMMARY REPORT:\n";
+        /* translators: 1: number of issues detected, 2: number of posts affected */
+        $subject = sprintf(
+            __('[Video Scanner Fix] Automated Scan Summary: %1$d issue(s) detected in %2$d post(s)', 'video-scanner-fix'),
+            count($filtered_issues),
+            count($grouped_posts)
+        );
+
+        $message  = __('Hello,', 'video-scanner-fix') . "\n\n";
+        $message .= __('The automated scan by Video Scanner Fix has completed and detected broken or restricted video links in your content.', 'video-scanner-fix') . "\n\n";
+        $message .= __('SUMMARY REPORT:', 'video-scanner-fix') . "\n";
         $message .= "--------------------------------------------------\n";
 
         foreach ($grouped_posts as $pid => $data) {
-            $message .= sprintf("POST: %s (ID: %d)\n", $data['post_title'], $pid);
+            /* translators: 1: post title, 2: post ID */
+            $message .= sprintf(__('POST: %1$s (ID: %2$d)', 'video-scanner-fix'), $data['post_title'], $pid) . "\n";
             if (!empty($data['permalink'])) {
-                $message .= sprintf("URL:  %s\n", $data['permalink']);
+                /* translators: %s: post URL. Keep the spacing after the colon so that values stay aligned with the post title line. */
+                $message .= sprintf(__('URL:  %s', 'video-scanner-fix'), $data['permalink']) . "\n";
             }
-            $message .= "ISSUES FOUND:\n";
+            $message .= __('ISSUES FOUND:', 'video-scanner-fix') . "\n";
 
             foreach ($data['items'] as $item) {
-                $status_label = ($item['status'] === 'geo_restricted') ? 'Geo-Blocked' : 'Broken';
+                $status_label = ($item['status'] === 'geo_restricted')
+                    ? __('Geo-Blocked', 'video-scanner-fix')
+                    : __('Broken', 'video-scanner-fix');
                 $message .= sprintf(
                     " - [%s] %s (%s - %s)\n",
                     $status_label,
                     $item['video_url'],
                     $item['response_code'],
-                    $item['error_message']
+                    $this->translate_scan_message($item['error_message'])
                 );
             }
             $message .= "--------------------------------------------------\n";
         }
 
-        $message .= "\nPlease log into your WordPress admin dashboard to review and manage these videos.\n";
-        $message .= "\nRegards,\nVideo Scanner Fix";
+        $message .= "\n" . __('Please log into your WordPress admin dashboard to review and manage these videos.', 'video-scanner-fix') . "\n";
+        $message .= "\n" . __('Regards,', 'video-scanner-fix') . "\nVideo Scanner Fix";
 
         return wp_mail($to, $subject, $message);
+    }
+
+    /**
+     * Translate the scan result messages that end up in the summary email.
+     *
+     * Scan results (and the log table) store these messages in English, so they
+     * are matched here by their exact text and translated only when a match is
+     * found. Anything else (e.g. WP_Error messages from the HTTP API) is returned
+     * unchanged, so no information is ever lost or altered.
+     */
+    protected function translate_scan_message($message) {
+        if (!is_string($message)) {
+            return $message;
+        }
+
+        switch ($message) {
+            case 'Video removed or private (YouTube API)':
+                return __('Video removed or private (YouTube API)', 'video-scanner-fix');
+            case 'YouTube video deleted, removed, or invalid ID':
+                return __('YouTube video deleted, removed, or invalid ID', 'video-scanner-fix');
+            case 'YouTube video private or embedding disabled':
+                return __('YouTube video private or embedding disabled', 'video-scanner-fix');
+            case 'Vimeo video unavailable, private, or deleted':
+                return __('Vimeo video unavailable, private, or deleted', 'video-scanner-fix');
+            case 'HTTP status code error':
+                return __('HTTP status code error', 'video-scanner-fix');
+        }
+
+        if (preg_match('/^Restricted in target country \((.*)\)$/', $message, $matches)) {
+            /* translators: %s: country code */
+            return sprintf(__('Restricted in target country (%s)', 'video-scanner-fix'), $matches[1]);
+        }
+
+        return $message;
     }
 }
