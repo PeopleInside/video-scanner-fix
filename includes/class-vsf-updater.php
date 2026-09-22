@@ -7,7 +7,6 @@
  * bottone "Aggiorna ora", compatibile con gli auto-update automatici se
  * l'utente li attiva per questo plugin).
  *
- * Adattato da PeopleInside/wp-moderneditor (class-mce-updater.php).
  *
  * IMPORTANTE: questa classe deve essere istanziata anche fuori da wp-admin
  * (wp-cron e WP-CLI), altrimenti gli aggiornamenti automatici non partono.
@@ -76,6 +75,37 @@ class Video_Scanner_Fix_Updater {
 
     private function plugin_basename(): string {
         return VSF_PLUGIN_BASENAME;
+    }
+
+    /**
+     * Versione REALMENTE installata al momento della chiamata.
+     *
+     * NON usa direttamente la costante VSF_VERSION: quella viene fissata una
+     * sola volta all'hook "plugins_loaded" e resta invariata per tutta la
+     * durata del processo PHP. Se un aggiornamento di QUESTO plugin avviene
+     * nello stesso processo che sta ricontrollando gli aggiornamenti (caso
+     * tipico di wp-cron con gli auto-update, o di un batch WP-CLI tipo
+     * "wp plugin update --all"), il file su disco viene già riscritto con la
+     * nuova versione ma la costante resta quella vecchia: il confronto
+     * risulterebbe erroneamente "c'è un aggiornamento" anche subito dopo
+     * aver appena installato l'ultima versione, causando un secondo
+     * aggiornamento identico e inutile.
+     *
+     * $transient->checked[$basename] viene invece ripopolato da WordPress
+     * ogni volta, leggendo l'header del plugin fresco da disco (get_plugins()),
+     * subito prima di invocare questo filtro: è quindi sempre allineato alla
+     * versione davvero installata, anche all'interno dello stesso processo.
+     * La costante resta come solo fallback per il caso limite in cui
+     * "checked" non sia valorizzato.
+     *
+     * @param object $transient
+     * @param string $basename
+     */
+    private function installed_version( $transient, string $basename ): string {
+        if ( isset( $transient->checked[ $basename ] ) && '' !== $transient->checked[ $basename ] ) {
+            return (string) $transient->checked[ $basename ];
+        }
+        return VSF_VERSION;
     }
 
     /**
@@ -261,9 +291,11 @@ class Video_Scanner_Fix_Updater {
             $transient->no_update = array();
         }
 
-        if ( ! version_compare( $release['version'], VSF_VERSION, '>' ) ) {
+        $installed_version = $this->installed_version( $transient, $basename );
+
+        if ( ! version_compare( $release['version'], $installed_version, '>' ) ) {
             unset( $transient->response[ $basename ] );
-            $transient->no_update[ $basename ] = $this->build_item( VSF_VERSION, '', $release['html_url'] );
+            $transient->no_update[ $basename ] = $this->build_item( $installed_version, '', $release['html_url'] );
             return $transient;
         }
 
