@@ -258,11 +258,11 @@ msgstr "Aggiungi Tag all'Articolo Guasto"
 msgid "Email Alerts"
 msgstr "Avvisi Email"
 
-msgid "Send a single summary email report at the end of automated scans (WP-Cron)"
-msgstr "Invia un singolo report riassuntivo via email al termine delle scansioni automatiche (WP-Cron)"
+msgid "Send a single summary email report at the end of automated scans (WP-Cron) only if broken or unreachable videos are found"
+msgstr "Invia un singolo report riassuntivo via email al termine delle scansioni automatiche (WP-Cron) solo in caso di problemi con video guasti o non raggiungibili"
 
-msgid "Note: Only 1 summary email is sent upon completion of automated background scans. Manual scans do not trigger email notifications."
-msgstr "Nota: Viene inviata solo 1 email riassuntiva al termine delle scansioni automatiche in background. Le scansioni manuali non inviano notifiche email."
+msgid "Note: Only 1 summary email is sent upon completion of automated background scans, and only if broken or unreachable video issues are detected. If no issues are found, no email is sent. Manual scans do not trigger email notifications."
+msgstr "Nota: Viene inviata solo 1 email riassuntiva al termine delle scansioni automatiche in background e solo in caso di problemi con video guasti o non raggiungibili. Se non vengono rilevati problemi, non viene inviata alcuna email. Le scansioni manuali non inviano notifiche email."
 
 msgid "Do NOT include geo-restricted videos in email reports (Mute geo-block alerts)"
 msgstr "NON includere video con restrizioni geografiche nei report email"

@@ -560,9 +560,9 @@ class Video_Scanner_Fix_Admin {
                         <td>
                             <label>
                                 <input type="checkbox" name="notify_on_broken" value="1" <?php checked(!empty($settings['notify_on_broken'])); ?> />
-                                <?php _e('Send a single summary email report at the end of automated scans (WP-Cron)', 'video-scanner-fix'); ?>
+                                <?php _e('Send a single summary email report at the end of automated scans (WP-Cron) only if broken or unreachable videos are found', 'video-scanner-fix'); ?>
                             </label>
-                            <p class="description"><?php _e('Note: Only 1 summary email is sent upon completion of automated background scans. Manual scans do not trigger email notifications.', 'video-scanner-fix'); ?></p>
+                            <p class="description"><?php _e('Note: Only 1 summary email is sent upon completion of automated background scans, and only if broken or unreachable video issues are detected. If no issues are found, no email is sent. Manual scans do not trigger email notifications.', 'video-scanner-fix'); ?></p>
                             <br/>
                             <label>
                                 <input type="checkbox" name="notify_ignore_geo_restricted" value="1" <?php checked(!empty($settings['notify_ignore_geo_restricted'])); ?> />
@@ -623,6 +623,8 @@ class Video_Scanner_Fix_Admin {
 
     protected function render_logs_tab($logs) {
         $total_items = Video_Scanner_Fix_Logger::get_logs_count('all', '');
+        $limit       = 50;
+        $total_pages = max(1, (int) ceil($total_items / $limit));
         ?>
         <div class="vsf-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
@@ -744,16 +746,19 @@ class Video_Scanner_Fix_Admin {
             <!-- Pagination Bar -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px; padding-top:10px; border-top:1px solid #eee; flex-wrap:wrap; gap:10px;">
                 <div id="vsf-pagination-info" style="font-weight:600; color:#555;">
-                    <?php printf(__('Total entries in log: %d', 'video-scanner-fix'), $total_items); ?>
+                    <?php 
+                    /* translators: 1: total items, 2: current page, 3: total pages */
+                    printf(__('Total entries: %1$s (Page %2$s of %3$s)', 'video-scanner-fix'), number_format_i18n($total_items), 1, number_format_i18n($total_pages)); 
+                    ?>
                 </div>
                 <div class="vsf-pagination-controls" style="display:flex; gap:5px; align-items:center;">
                     <button type="button" class="button button-secondary button-small vsf-page-nav-btn" id="vsf-page-first" data-page="1" disabled>&laquo;</button>
                     <button type="button" class="button button-secondary button-small vsf-page-nav-btn" id="vsf-page-prev" data-page="1" disabled>&lsaquo;</button>
                     <span style="margin:0 8px; font-size:13px;">
-                        <?php _e('Page', 'video-scanner-fix'); ?> <strong id="vsf-page-current-num">1</strong> <?php _e('of', 'video-scanner-fix'); ?> <strong id="vsf-page-total-num">1</strong>
+                        <?php _e('Page', 'video-scanner-fix'); ?> <strong id="vsf-page-current-num">1</strong> <?php _e('of', 'video-scanner-fix'); ?> <strong id="vsf-page-total-num"><?php echo esc_html($total_pages); ?></strong>
                     </span>
-                    <button type="button" class="button button-secondary button-small vsf-page-nav-btn" id="vsf-page-next" data-page="1">&rsaquo;</button>
-                    <button type="button" class="button button-secondary button-small vsf-page-nav-btn" id="vsf-page-last" data-page="1">&raquo;</button>
+                    <button type="button" class="button button-secondary button-small vsf-page-nav-btn" id="vsf-page-next" data-page="<?php echo min($total_pages, 2); ?>" <?php echo $total_pages <= 1 ? 'disabled' : ''; ?>>&rsaquo;</button>
+                    <button type="button" class="button button-secondary button-small vsf-page-nav-btn" id="vsf-page-last" data-page="<?php echo esc_attr($total_pages); ?>" <?php echo $total_pages <= 1 ? 'disabled' : ''; ?>>&raquo;</button>
                 </div>
             </div>
         </div>
