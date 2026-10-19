@@ -163,10 +163,10 @@
                     $('#vsf-page-first, #vsf-page-prev').prop('disabled', data.page <= 1);
                     $('#vsf-page-next, #vsf-page-last').prop('disabled', data.page >= data.total_pages);
 
-                    $('#vsf-page-first').data('page', 1);
-                    $('#vsf-page-prev').data('page', Math.max(1, data.page - 1));
-                    $('#vsf-page-next').data('page', Math.min(data.total_pages, data.page + 1));
-                    $('#vsf-page-last').data('page', data.total_pages);
+                    $('#vsf-page-first').data('page', 1).attr('data-page', 1);
+                    $('#vsf-page-prev').data('page', Math.max(1, data.page - 1)).attr('data-page', Math.max(1, data.page - 1));
+                    $('#vsf-page-next').data('page', Math.min(data.total_pages, data.page + 1)).attr('data-page', Math.min(data.total_pages, data.page + 1));
+                    $('#vsf-page-last').data('page', data.total_pages).attr('data-page', data.total_pages);
                 } else {
                     $tbody.html('<tr><td colspan="6" style="color:red; padding:15px; text-align:center;">' + (response.data.message || (vsf_vars.strings.error_loading_logs || 'Error loading logs')) + '</td></tr>');
                 }
