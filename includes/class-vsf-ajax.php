@@ -66,7 +66,13 @@ class Video_Scanner_Fix_Ajax {
         $batch_query = new WP_Query($query_args);
         $scanner = new Video_Scanner_Fix_Scanner();
 
+        $transient_key = 'vsf_manual_issues_' . get_current_user_id();
+        if ($page === 1) {
+            delete_transient($transient_key);
+        }
+
         $batch_logs = array();
+        $batch_issues = array();
         $batch_videos_checked = 0;
         $batch_broken_found = 0;
 
@@ -78,11 +84,23 @@ class Video_Scanner_Fix_Ajax {
                         $batch_videos_checked++;
                         if ($item['status'] === 'broken') {
                             $batch_broken_found++;
+                            $batch_issues[] = $item;
+                        } elseif ($item['status'] === 'geo_restricted') {
+                            $batch_issues[] = $item;
                         }
                         $batch_logs[] = $item;
                     }
                 }
             }
+        }
+
+        if (!empty($batch_issues)) {
+            $accumulated = get_transient($transient_key);
+            if (!is_array($accumulated)) {
+                $accumulated = array();
+            }
+            $accumulated = array_merge($accumulated, $batch_issues);
+            set_transient($transient_key, $accumulated, 2 * HOUR_IN_SECONDS);
         }
 
         $scanned_so_far = min($total_posts, $page * $batch_size);
@@ -99,6 +117,13 @@ class Video_Scanner_Fix_Ajax {
                 'completed_at'    => time(),
                 'type'            => 'manual'
             ));
+
+            $collected_issues = get_transient($transient_key);
+            delete_transient($transient_key);
+
+            if (!empty($settings['notify_on_broken']) && !empty($settings['notify_on_manual']) && !empty($collected_issues)) {
+                $scanner->send_automated_scan_summary_email($collected_issues, 'manual');
+            }
         }
 
         $stats = Video_Scanner_Fix_Logger::get_stats();

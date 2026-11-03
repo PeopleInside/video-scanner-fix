@@ -258,11 +258,17 @@ msgstr "Aggiungi Tag all'Articolo Guasto"
 msgid "Email Alerts"
 msgstr "Avvisi Email"
 
-msgid "Send a single summary email report at the end of automated scans (WP-Cron) only if broken or unreachable videos are found"
-msgstr "Invia un singolo report riassuntivo via email al termine delle scansioni automatiche (WP-Cron) solo in caso di problemi con video guasti o non raggiungibili"
+msgid "Send a summary email report at the end of automated scans (WP-Cron) if broken or unreachable videos are found"
+msgstr "Invia un report riassuntivo via email al termine delle scansioni automatiche (WP-Cron) se vengono trovati video guasti o non raggiungibili"
 
-msgid "Note: Only 1 summary email is sent upon completion of automated background scans, and only if broken or unreachable video issues are detected. If no issues are found, no email is sent. Manual scans do not trigger email notifications."
-msgstr "Nota: Viene inviata solo 1 email riassuntiva al termine delle scansioni automatiche in background e solo in caso di problemi con video guasti o non raggiungibili. Se non vengono rilevati problemi, non viene inviata alcuna email. Le scansioni manuali non inviano notifiche email."
+msgid "Also send summary email report at the end of manual batch scans if broken videos are found"
+msgstr "Invia il report riassuntivo via email anche al termine delle scansioni manuali a lotti se vengono trovati video guasti"
+
+msgid "Note: Only 1 summary email is sent upon completion of a scan, and only if broken or unreachable video issues are detected. If no issues are found, no email is sent."
+msgstr "Nota: Viene inviata solo 1 email riassuntiva al termine della scansione e solo in caso di problemi con video guasti o non raggiungibili. Se non vengono rilevati problemi, non viene inviata alcuna email."
+
+msgid "Notification Email Address:"
+msgstr "Indirizzo Email per le Notifiche:"
 
 msgid "Do NOT include geo-restricted videos in email reports (Mute geo-block alerts)"
 msgstr "NON includere video con restrizioni geografiche nei report email"
@@ -510,12 +516,25 @@ msgstr "Ultimo Controllo"
 msgid "Actions"
 msgstr "Azioni"
 
+msgid "Manual Scan Summary"
+msgstr "Riepilogo Scansione Manuale"
+
+msgid "Automated Scan Summary"
+msgstr "Riepilogo Scansione Automatica"
+
+#, php-format
+msgid "[Video Scanner Fix] %1$s: %2$d issue(s) detected in %3$d post(s)"
+msgstr "[Video Scanner Fix] %1$s: problemi rilevati: %2$d in %3$d articoli"
+
 #, php-format
 msgid "[Video Scanner Fix] Automated Scan Summary: %1$d issue(s) detected in %2$d post(s)"
 msgstr "[Video Scanner Fix] Riepilogo scansione automatica: problemi rilevati: %1$d, articoli interessati: %2$d"
 
 msgid "Hello,"
 msgstr "Salve,"
+
+msgid "The manual scan by Video Scanner Fix has completed and detected broken or restricted video links in your content."
+msgstr "La scansione manuale di Video Scanner Fix è stata completata e ha rilevato link video guasti o con restrizioni nei tuoi contenuti."
 
 msgid "The automated scan by Video Scanner Fix has completed and detected broken or restricted video links in your content."
 msgstr "La scansione automatica di Video Scanner Fix è stata completata e ha rilevato link video guasti o con restrizioni nei tuoi contenuti."

@@ -560,16 +560,22 @@ class Video_Scanner_Fix_Admin {
                         <td>
                             <label>
                                 <input type="checkbox" name="notify_on_broken" value="1" <?php checked(!empty($settings['notify_on_broken'])); ?> />
-                                <?php _e('Send a single summary email report at the end of automated scans (WP-Cron) only if broken or unreachable videos are found', 'video-scanner-fix'); ?>
+                                <?php _e('Send a summary email report at the end of automated scans (WP-Cron) if broken or unreachable videos are found', 'video-scanner-fix'); ?>
                             </label>
-                            <p class="description"><?php _e('Note: Only 1 summary email is sent upon completion of automated background scans, and only if broken or unreachable video issues are detected. If no issues are found, no email is sent. Manual scans do not trigger email notifications.', 'video-scanner-fix'); ?></p>
+                            <br/><br/>
+                            <label>
+                                <input type="checkbox" name="notify_on_manual" value="1" <?php checked(!empty($settings['notify_on_manual'])); ?> />
+                                <?php _e('Also send summary email report at the end of manual batch scans if broken videos are found', 'video-scanner-fix'); ?>
+                            </label>
+                            <p class="description"><?php _e('Note: Only 1 summary email is sent upon completion of a scan, and only if broken or unreachable video issues are detected. If no issues are found, no email is sent.', 'video-scanner-fix'); ?></p>
                             <br/>
                             <label>
                                 <input type="checkbox" name="notify_ignore_geo_restricted" value="1" <?php checked(!empty($settings['notify_ignore_geo_restricted'])); ?> />
                                 <?php _e('Do NOT include geo-restricted videos in email reports (Mute geo-block alerts)', 'video-scanner-fix'); ?>
                             </label>
                             <br/><br/>
-                            <input type="email" name="notify_email" value="<?php echo esc_attr(isset($settings['notify_email']) ? $settings['notify_email'] : get_option('admin_email')); ?>" class="regular-text" />
+                            <label for="notify_email"><strong><?php _e('Notification Email Address:', 'video-scanner-fix'); ?></strong></label><br/>
+                            <input type="email" id="notify_email" name="notify_email" value="<?php echo esc_attr(isset($settings['notify_email']) ? $settings['notify_email'] : get_option('admin_email')); ?>" class="regular-text" />
                         </td>
                     </tr>
                     <tr>
@@ -843,6 +849,7 @@ class Video_Scanner_Fix_Admin {
             $settings['on_broken_status']   = isset($_POST['on_broken_status']) ? sanitize_text_field($_POST['on_broken_status']) : 'no_change';
             $settings['on_broken_tag']      = isset($_POST['on_broken_tag']) ? sanitize_text_field($_POST['on_broken_tag']) : '';
             $settings['notify_on_broken']   = isset($_POST['notify_on_broken']) ? 1 : 0;
+            $settings['notify_on_manual']   = isset($_POST['notify_on_manual']) ? 1 : 0;
             $settings['notify_ignore_geo_restricted'] = isset($_POST['notify_ignore_geo_restricted']) ? 1 : 0;
             $settings['notify_email']       = isset($_POST['notify_email']) ? sanitize_email($_POST['notify_email']) : get_option('admin_email');
             $settings['check_geo_restriction'] = isset($_POST['check_geo_restriction']) ? 1 : 0;
