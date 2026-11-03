@@ -3,7 +3,7 @@ Contributors: peopleinside
 Tags: video link checker, broken video scanner, youtube scanner, vimeo, video embed checker
 Requires at least: 5.6
 Tested up to: 7.1
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -29,6 +29,9 @@ Video Scanner Fix is a powerful, lightweight, and modern WordPress plugin built 
 3. Configure settings under Video Scanner in your WordPress admin bar.
 
 == Changelog ==
+
+= 1.1.2 =
+* Changed: Updated the display order of the scan status summary to Total, Valid, Broken, Geo Blocked, Ignored in both the WordPress dashboard widget and the plugin settings page.
 
 = 1.1.1 =
 * Fixed: Automated WP-Cron scan stalled or failed to send summary email reports on sites with multiple batches. Batches now loop within a safe execution time window, properly chain remaining items using spawn_cron(), preserve active scan queues without premature reset, and clean up chained events on schedule reset.
