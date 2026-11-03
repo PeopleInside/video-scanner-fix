@@ -108,13 +108,13 @@ class Video_Scanner_Fix_Admin {
                     <span style="font-size:18px; font-weight:bold; color:#1d2327; display:block;"><?php echo esc_html($stats['total']); ?></span>
                     <span style="font-size:11px; color:#646970; text-transform:uppercase; font-weight:600;"><?php _e('Total', 'video-scanner-fix'); ?></span>
                 </div>
-                <div style="background:#fcf0f2; border:1px solid #f2c7ce; border-radius:6px; padding:10px 5px;">
-                    <span style="font-size:18px; font-weight:bold; color:#d63638; display:block;"><?php echo esc_html($stats['broken']); ?></span>
-                    <span style="font-size:11px; color:#d63638; text-transform:uppercase; font-weight:600;"><?php _e('Broken', 'video-scanner-fix'); ?></span>
-                </div>
                 <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:10px 5px;">
                     <span style="font-size:18px; font-weight:bold; color:#008a20; display:block;"><?php echo esc_html($stats['valid']); ?></span>
                     <span style="font-size:11px; color:#008a20; text-transform:uppercase; font-weight:600;"><?php _e('Valid', 'video-scanner-fix'); ?></span>
+                </div>
+                <div style="background:#fcf0f2; border:1px solid #f2c7ce; border-radius:6px; padding:10px 5px;">
+                    <span style="font-size:18px; font-weight:bold; color:#d63638; display:block;"><?php echo esc_html($stats['broken']); ?></span>
+                    <span style="font-size:11px; color:#d63638; text-transform:uppercase; font-weight:600;"><?php _e('Broken', 'video-scanner-fix'); ?></span>
                 </div>
                 <div style="background:#f3e8ff; border:1px solid #d8b4fe; border-radius:6px; padding:10px 5px;">
                     <span style="font-size:18px; font-weight:bold; color:#7e22ce; display:block;"><?php echo esc_html(isset($stats['geo_restricted']) ? $stats['geo_restricted'] : 0); ?></span>
@@ -309,19 +309,19 @@ class Video_Scanner_Fix_Admin {
                 </div>
             </div>
 
-            <div class="vsf-card vsf-stat-card vsf-stat-broken vsf-stat-clickable" data-filter="broken" style="cursor:pointer;" title="<?php _e('Click to view broken videos in logs', 'video-scanner-fix'); ?>">
-                <div class="vsf-stat-icon"><span class="dashicons dashicons-warning"></span></div>
-                <div class="vsf-stat-data">
-                    <span class="vsf-stat-number"><?php echo esc_html($stats['broken']); ?></span>
-                    <span class="vsf-stat-label"><?php _e('Broken Links Detected', 'video-scanner-fix'); ?></span>
-                </div>
-            </div>
-
             <div class="vsf-card vsf-stat-card vsf-stat-valid vsf-stat-clickable" data-filter="valid" style="cursor:pointer;" title="<?php _e('Click to view valid videos in logs', 'video-scanner-fix'); ?>">
                 <div class="vsf-stat-icon"><span class="dashicons dashicons-yes-alt"></span></div>
                 <div class="vsf-stat-data">
                     <span class="vsf-stat-number"><?php echo esc_html($stats['valid']); ?></span>
                     <span class="vsf-stat-label"><?php _e('Valid Video Embeds', 'video-scanner-fix'); ?></span>
+                </div>
+            </div>
+
+            <div class="vsf-card vsf-stat-card vsf-stat-broken vsf-stat-clickable" data-filter="broken" style="cursor:pointer;" title="<?php _e('Click to view broken videos in logs', 'video-scanner-fix'); ?>">
+                <div class="vsf-stat-icon"><span class="dashicons dashicons-warning"></span></div>
+                <div class="vsf-stat-data">
+                    <span class="vsf-stat-number"><?php echo esc_html($stats['broken']); ?></span>
+                    <span class="vsf-stat-label"><?php _e('Broken Links Detected', 'video-scanner-fix'); ?></span>
                 </div>
             </div>
 
@@ -652,8 +652,8 @@ class Video_Scanner_Fix_Admin {
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:#f8fafc; padding:12px; border:1px solid #e2e8f0; border-radius:6px; flex-wrap:wrap; gap:10px;">
                 <div class="vsf-log-filters button-group">
                     <button type="button" class="button button-secondary vsf-log-filter-btn active" data-filter="all"><?php _e('All', 'video-scanner-fix'); ?></button>
-                    <button type="button" class="button button-secondary vsf-log-filter-btn" data-filter="broken"><?php _e('Broken', 'video-scanner-fix'); ?></button>
                     <button type="button" class="button button-secondary vsf-log-filter-btn" data-filter="valid"><?php _e('Valid', 'video-scanner-fix'); ?></button>
+                    <button type="button" class="button button-secondary vsf-log-filter-btn" data-filter="broken"><?php _e('Broken', 'video-scanner-fix'); ?></button>
                     <button type="button" class="button button-secondary vsf-log-filter-btn" data-filter="geo_restricted"><?php _e('Geo-Restricted', 'video-scanner-fix'); ?></button>
                     <button type="button" class="button button-secondary vsf-log-filter-btn" data-filter="ignored"><?php _e('Ignored', 'video-scanner-fix'); ?></button>
                 </div>

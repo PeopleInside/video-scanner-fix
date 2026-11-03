@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Video Scanner Fix 1.0.0\n"
+"Project-Id-Version: Video Scanner Fix 1.1.2\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/video-scanner-fix\n"
 "POT-Creation-Date: 2026-03-29 12:00+0000\n"
 "PO-Revision-Date: 2026-03-29 12:00+0000\n"
