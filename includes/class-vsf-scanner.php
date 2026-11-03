@@ -483,7 +483,7 @@ class Video_Scanner_Fix_Scanner {
     /**
      * Send a single consolidated summary email at the end of an automated scan
      */
-    public function send_automated_scan_summary_email($scan_issues) {
+    public function send_automated_scan_summary_email($scan_issues, $scan_type = 'automated') {
         if (empty($this->settings['notify_on_broken']) || empty($this->settings['notify_email']) || empty($scan_issues)) {
             return false;
         }
@@ -519,15 +519,24 @@ class Video_Scanner_Fix_Scanner {
 
         $to = $this->settings['notify_email'];
 
-        /* translators: 1: number of issues detected, 2: number of posts affected */
+        $scan_title_label = ($scan_type === 'manual')
+            ? __('Manual Scan Summary', 'video-scanner-fix')
+            : __('Automated Scan Summary', 'video-scanner-fix');
+
+        /* translators: 1: scan title label, 2: number of issues detected, 3: number of posts affected */
         $subject = sprintf(
-            __('[Video Scanner Fix] Automated Scan Summary: %1$d issue(s) detected in %2$d post(s)', 'video-scanner-fix'),
+            __('[Video Scanner Fix] %1$s: %2$d issue(s) detected in %3$d post(s)', 'video-scanner-fix'),
+            $scan_title_label,
             count($filtered_issues),
             count($grouped_posts)
         );
 
+        $intro_text = ($scan_type === 'manual')
+            ? __('The manual scan by Video Scanner Fix has completed and detected broken or restricted video links in your content.', 'video-scanner-fix')
+            : __('The automated scan by Video Scanner Fix has completed and detected broken or restricted video links in your content.', 'video-scanner-fix');
+
         $message  = __('Hello,', 'video-scanner-fix') . "\n\n";
-        $message .= __('The automated scan by Video Scanner Fix has completed and detected broken or restricted video links in your content.', 'video-scanner-fix') . "\n\n";
+        $message .= $intro_text . "\n\n";
         $message .= __('SUMMARY REPORT:', 'video-scanner-fix') . "\n";
         $message .= "--------------------------------------------------\n";
 
@@ -558,7 +567,14 @@ class Video_Scanner_Fix_Scanner {
         $message .= "\n" . __('Please log into your WordPress admin dashboard to review and manage these videos.', 'video-scanner-fix') . "\n";
         $message .= "\n" . __('Regards,', 'video-scanner-fix') . "\nVideo Scanner Fix";
 
-        return wp_mail($to, $subject, $message);
+        $headers = array('Content-Type: text/plain; charset=UTF-8');
+        $from_email = get_option('admin_email');
+        $from_name  = get_bloginfo('name');
+        if (!empty($from_email)) {
+            $headers[] = 'From: ' . $from_name . ' <' . $from_email . '>';
+        }
+
+        return wp_mail($to, $subject, $message, $headers);
     }
 
     /**
