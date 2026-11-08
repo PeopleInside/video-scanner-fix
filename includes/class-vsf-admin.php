@@ -103,26 +103,30 @@ class Video_Scanner_Fix_Admin {
             <p style="margin-top:0; font-weight:600; color:#444;">
                 <?php _e('Current video scan status across your site:', 'video-scanner-fix'); ?>
             </p>
-            <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:10px; margin:15px 0; text-align:center;">
-                <div style="background:#f0f6fc; border:1px solid #c8d7e8; border-radius:6px; padding:10px 5px;">
+            <div style="display:grid; grid-template-columns: repeat(6, 1fr); gap:8px; margin:15px 0; text-align:center;">
+                <div style="background:#f0f6fc; border:1px solid #c8d7e8; border-radius:6px; padding:10px 4px;">
                     <span style="font-size:18px; font-weight:bold; color:#1d2327; display:block;"><?php echo esc_html($stats['total']); ?></span>
                     <span style="font-size:11px; color:#646970; text-transform:uppercase; font-weight:600;"><?php _e('Total', 'video-scanner-fix'); ?></span>
                 </div>
-                <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:10px 5px;">
+                <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:10px 4px;">
                     <span style="font-size:18px; font-weight:bold; color:#008a20; display:block;"><?php echo esc_html($stats['valid']); ?></span>
                     <span style="font-size:11px; color:#008a20; text-transform:uppercase; font-weight:600;"><?php _e('Valid', 'video-scanner-fix'); ?></span>
                 </div>
-                <div style="background:#fcf0f2; border:1px solid #f2c7ce; border-radius:6px; padding:10px 5px;">
+                <div style="background:#fcf0f2; border:1px solid #f2c7ce; border-radius:6px; padding:10px 4px;">
                     <span style="font-size:18px; font-weight:bold; color:#d63638; display:block;"><?php echo esc_html($stats['broken']); ?></span>
                     <span style="font-size:11px; color:#d63638; text-transform:uppercase; font-weight:600;"><?php _e('Broken', 'video-scanner-fix'); ?></span>
                 </div>
-                <div style="background:#f3e8ff; border:1px solid #d8b4fe; border-radius:6px; padding:10px 5px;">
+                <div style="background:#f3e8ff; border:1px solid #d8b4fe; border-radius:6px; padding:10px 4px;">
                     <span style="font-size:18px; font-weight:bold; color:#7e22ce; display:block;"><?php echo esc_html(isset($stats['geo_restricted']) ? $stats['geo_restricted'] : 0); ?></span>
                     <span style="font-size:11px; color:#7e22ce; text-transform:uppercase; font-weight:600;"><?php _e('Geo Blocked', 'video-scanner-fix'); ?></span>
                 </div>
-                <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:10px 5px;">
+                <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:10px 4px;">
                     <span style="font-size:18px; font-weight:bold; color:#b45309; display:block;"><?php echo esc_html(isset($stats['ignored']) ? $stats['ignored'] : 0); ?></span>
                     <span style="font-size:11px; color:#b45309; text-transform:uppercase; font-weight:600;"><?php _e('Ignored', 'video-scanner-fix'); ?></span>
+                </div>
+                <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:10px 4px;">
+                    <span style="font-size:18px; font-weight:bold; color:#b91c1c; display:block;"><?php echo esc_html(isset($stats['errors']) ? $stats['errors'] : 0); ?></span>
+                    <span style="font-size:11px; color:#b91c1c; text-transform:uppercase; font-weight:600;"><?php _e('Errors', 'video-scanner-fix'); ?></span>
                 </div>
             </div>
             <div style="margin:10px 0; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:8px 12px; font-size:12px; color:#475569; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
@@ -138,7 +142,7 @@ class Video_Scanner_Fix_Admin {
             <div style="display:flex; gap:10px; margin-top:12px; border-top:1px solid #f0f0f1; padding-top:10px; flex-wrap:wrap;">
                 <a href="<?php echo esc_url($admin_url . '&tab=scanner'); ?>" class="button button-primary button-small"><?php _e('Run Manual Scan', 'video-scanner-fix'); ?></a>
                 <a href="<?php echo esc_url($admin_url . '&tab=logs'); ?>" class="button button-secondary button-small"><?php _e('View Logs', 'video-scanner-fix'); ?></a>
-                <a href="<?php echo esc_url($admin_url); ?>" class="button button-secondary button-small" style="margin-left:auto;"><?php _e('Settings', 'video-scanner-fix'); ?></a>
+                <a href="<?php echo esc_url($admin_url); ?>" class="button button-secondary button-small" style="margin-left:auto;"><?php _e('Dashboard', 'video-scanner-fix'); ?></a>
             </div>
         </div>
         <?php
@@ -179,6 +183,8 @@ class Video_Scanner_Fix_Admin {
                     'error_occurred'        => __('An error occurred while scanning.', 'video-scanner-fix'),
                     'no_logs_found'         => __('No log entries found matching criteria.', 'video-scanner-fix'),
                     'broken'                => __('Broken', 'video-scanner-fix'),
+                    'error'                 => __('Error', 'video-scanner-fix'),
+                    'errors'                => __('Errors', 'video-scanner-fix'),
                     'geo_blocked'           => __('Geo Blocked', 'video-scanner-fix'),
                     'ignored'               => __('Ignored', 'video-scanner-fix'),
                     'valid'                 => __('Valid', 'video-scanner-fix'),
@@ -338,6 +344,14 @@ class Video_Scanner_Fix_Admin {
                 <div class="vsf-stat-data">
                     <span class="vsf-stat-number"><?php echo esc_html(isset($stats['ignored']) ? $stats['ignored'] : 0); ?></span>
                     <span class="vsf-stat-label"><?php _e('Ignored Videos', 'video-scanner-fix'); ?></span>
+                </div>
+            </div>
+
+            <div class="vsf-card vsf-stat-card vsf-stat-errors vsf-stat-clickable" data-filter="error" style="border-left-color: #e11d48; cursor:pointer;" title="<?php _e('Click to view errors in logs', 'video-scanner-fix'); ?>">
+                <div class="vsf-stat-icon"><span class="dashicons dashicons-dismiss" style="color:#e11d48;"></span></div>
+                <div class="vsf-stat-data">
+                    <span class="vsf-stat-number"><?php echo esc_html(isset($stats['errors']) ? $stats['errors'] : 0); ?></span>
+                    <span class="vsf-stat-label"><?php _e('Scan Errors Detected', 'video-scanner-fix'); ?></span>
                 </div>
             </div>
 
@@ -656,6 +670,7 @@ class Video_Scanner_Fix_Admin {
                     <button type="button" class="button button-secondary vsf-log-filter-btn" data-filter="broken"><?php _e('Broken', 'video-scanner-fix'); ?></button>
                     <button type="button" class="button button-secondary vsf-log-filter-btn" data-filter="geo_restricted"><?php _e('Geo-Restricted', 'video-scanner-fix'); ?></button>
                     <button type="button" class="button button-secondary vsf-log-filter-btn" data-filter="ignored"><?php _e('Ignored', 'video-scanner-fix'); ?></button>
+                    <button type="button" class="button button-secondary vsf-log-filter-btn" data-filter="error"><?php _e('Errors', 'video-scanner-fix'); ?></button>
                 </div>
 
                 <div style="display:flex; gap:10px; align-items:center;">
@@ -699,6 +714,8 @@ class Video_Scanner_Fix_Admin {
                                 <td>
                                     <?php if ($log['status'] === 'broken'): ?>
                                         <span class="vsf-badge vsf-badge-danger"><?php _e('Broken', 'video-scanner-fix'); ?></span>
+                                    <?php elseif ($log['status'] === 'error'): ?>
+                                        <span class="vsf-badge" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;"><?php _e('Error', 'video-scanner-fix'); ?></span>
                                     <?php elseif ($log['status'] === 'geo_restricted'): ?>
                                         <span class="vsf-badge" style="background:#f3e8ff; color:#7e22ce; border:1px solid #d8b4fe;"><?php _e('Geo Blocked', 'video-scanner-fix'); ?></span>
                                     <?php elseif ($log['status'] === 'ignored'): ?>

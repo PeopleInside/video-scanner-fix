@@ -72,6 +72,32 @@ class Video_Scanner_Fix_Scanner {
             return array('error' => 'Invalid Post');
         }
 
+        // If post is in trash or auto-draft, prune any existing logs and do not scan
+        if ($post->post_status === 'trash' || $post->post_status === 'auto-draft') {
+            if (!empty($post->ID)) {
+                Video_Scanner_Fix_Logger::delete_logs_by_post_id($post->ID);
+            }
+            return array(
+                'post_id'       => $post->ID,
+                'post_title'    => $post->post_title,
+                'videos_found'  => 0,
+                'results'       => array(),
+                'has_broken'    => false
+            );
+        }
+
+        // Check if post status is configured for scanning
+        $allowed_statuses = isset($this->settings['scan_post_statuses']) ? (array)$this->settings['scan_post_statuses'] : array('publish');
+        if (!in_array($post->post_status, $allowed_statuses, true)) {
+            return array(
+                'post_id'       => $post->ID,
+                'post_title'    => $post->post_title,
+                'videos_found'  => 0,
+                'results'       => array(),
+                'has_broken'    => false
+            );
+        }
+
         $all_platform_keys = array_keys($this->get_patterns());
         $enabled_platforms = (isset($this->settings['enabled_platforms']) && is_array($this->settings['enabled_platforms']) && !empty($this->settings['enabled_platforms']))
             ? $this->settings['enabled_platforms']
@@ -160,10 +186,11 @@ class Video_Scanner_Fix_Scanner {
                     }
                 }
                 $all_found_urls = wp_list_pluck($all_found, 'url');
+                $all_found_urls_raw = array_map('esc_url_raw', $all_found_urls);
 
                 foreach ($old_logs as $old_log) {
                     $url = $old_log['video_url'];
-                    if (!in_array($url, $all_found_urls, true)) {
+                    if (!in_array($url, $all_found_urls, true) && !in_array(esc_url_raw($url), $all_found_urls_raw, true)) {
                         // Video URL is no longer in post content/meta -> remove log entry
                         Video_Scanner_Fix_Logger::delete_log($old_log['id']);
                     }
@@ -305,7 +332,37 @@ class Video_Scanner_Fix_Scanner {
                             'error_message' => 'Video removed or private (YouTube API)'
                         );
                     }
+                } else if ($code >= 500) {
+                    return array(
+                        'platform'      => 'youtube',
+                        'video_url'     => $url,
+                        'video_id'      => $video_id,
+                        'status'        => 'error',
+                        'response_code' => (string)$code . ' Server Error',
+                        'error_message' => 'YouTube API server error'
+                    );
+                } else if ($code === 403) {
+                    $body_str = wp_remote_retrieve_body($response);
+                    if (strpos($body_str, 'quotaExceeded') !== false) {
+                        return array(
+                            'platform'      => 'youtube',
+                            'video_url'     => $url,
+                            'video_id'      => $video_id,
+                            'status'        => 'error',
+                            'response_code' => '403 Quota Exceeded',
+                            'error_message' => 'YouTube API quota exceeded'
+                        );
+                    }
                 }
+            } else {
+                return array(
+                    'platform'      => 'youtube',
+                    'video_url'     => $url,
+                    'video_id'      => $video_id,
+                    'status'        => 'error',
+                    'response_code' => 'Connection Error',
+                    'error_message' => $response->get_error_message()
+                );
             }
         }
 
@@ -344,7 +401,25 @@ class Video_Scanner_Fix_Scanner {
                         'response_code' => (string)$code . ' Forbidden',
                         'error_message' => 'YouTube video private or embedding disabled'
                     );
+                } else if ($code >= 500) {
+                    return array(
+                        'platform'      => 'youtube',
+                        'video_url'     => $url,
+                        'video_id'      => $video_id,
+                        'status'        => 'error',
+                        'response_code' => (string)$code . ' Server Error',
+                        'error_message' => 'YouTube server error'
+                    );
                 }
+            } else {
+                return array(
+                    'platform'      => 'youtube',
+                    'video_url'     => $url,
+                    'video_id'      => $video_id,
+                    'status'        => 'error',
+                    'response_code' => 'Connection Error',
+                    'error_message' => $response->get_error_message()
+                );
             }
         }
 
@@ -362,8 +437,8 @@ class Video_Scanner_Fix_Scanner {
                 'platform' => 'vimeo',
                 'video_url' => $url,
                 'video_id' => $video_id,
-                'status'   => 'broken',
-                'response_code' => 'HTTP Connection Failed',
+                'status'   => 'error',
+                'response_code' => 'Connection Error',
                 'error_message' => $response->get_error_message()
             );
         }
@@ -377,6 +452,15 @@ class Video_Scanner_Fix_Scanner {
                 'status'   => 'valid',
                 'response_code' => '200 OK',
                 'error_message' => 'Vimeo oEmbed OK'
+            );
+        } else if ($code >= 500) {
+            return array(
+                'platform' => 'vimeo',
+                'video_url' => $url,
+                'video_id' => $video_id,
+                'status'   => 'error',
+                'response_code' => (string)$code . ' Server Error',
+                'error_message' => 'Vimeo server error'
             );
         } else {
             return array(
@@ -408,7 +492,7 @@ class Video_Scanner_Fix_Scanner {
                 'platform' => $platform,
                 'video_url' => $url,
                 'video_id' => $video_id,
-                'status'   => 'broken',
+                'status'   => 'error',
                 'response_code' => 'Connection Error',
                 'error_message' => $response->get_error_message()
             );
@@ -423,6 +507,15 @@ class Video_Scanner_Fix_Scanner {
                 'status'   => 'valid',
                 'response_code' => $code . ' OK',
                 'error_message' => 'Resource accessible'
+            );
+        } else if ($code >= 500) {
+            return array(
+                'platform' => $platform,
+                'video_url' => $url,
+                'video_id' => $video_id,
+                'status'   => 'error',
+                'response_code' => (string)$code . ' Server Error',
+                'error_message' => 'Server error or temporarily unavailable'
             );
         } else {
             return array(
@@ -488,24 +581,87 @@ class Video_Scanner_Fix_Scanner {
             return false;
         }
 
-        $mute_geo_email = !empty($this->settings['notify_ignore_geo_restricted']);
-        $filtered_issues = array();
+        $mute_geo_email    = !empty($this->settings['notify_ignore_geo_restricted']);
+        $allowed_statuses  = isset($this->settings['scan_post_statuses']) ? (array)$this->settings['scan_post_statuses'] : array('publish');
+        $all_platform_keys = array_keys($this->get_patterns());
+        $meta_keys         = isset($this->settings['scan_meta_keys']) ? trim($this->settings['scan_meta_keys']) : '';
+
+        $validated_issues = array();
 
         foreach ($scan_issues as $issue) {
             // Filter out geo-restricted items if muted
             if ($issue['status'] === 'geo_restricted' && $mute_geo_email) {
                 continue;
             }
-            $filtered_issues[] = $issue;
+
+            $pid = isset($issue['post_id']) ? intval($issue['post_id']) : 0;
+            if ($pid > 0) {
+                $post = get_post($pid);
+
+                // 1. Post must still exist and NOT be in trash or auto-draft
+                if (!$post || $post->post_status === 'trash' || $post->post_status === 'auto-draft') {
+                    // Post was deleted or moved to trash -> clean up logs and skip from email
+                    Video_Scanner_Fix_Logger::delete_logs_by_post_id($pid);
+                    continue;
+                }
+
+                // 2. Post status must still match the scan settings
+                if (!in_array($post->post_status, $allowed_statuses, true)) {
+                    continue;
+                }
+
+                // 3. The video URL must still be present in the post content or configured meta keys
+                $current_videos = $this->extract_videos_from_text($post->post_content, $all_platform_keys);
+                if (!empty($meta_keys)) {
+                    $keys = array_map('trim', explode(',', $meta_keys));
+                    foreach ($keys as $key) {
+                        if (empty($key)) continue;
+                        $meta_val = get_post_meta($post->ID, $key, true);
+                        if (is_string($meta_val) && !empty($meta_val)) {
+                            $current_videos = array_merge($current_videos, $this->extract_videos_from_text($meta_val, $all_platform_keys));
+                        }
+                    }
+                }
+
+                $target_url = isset($issue['video_url']) ? $issue['video_url'] : '';
+                $target_id  = isset($issue['video_id']) ? $issue['video_id'] : '';
+                $still_present = false;
+
+                foreach ($current_videos as $cv) {
+                    if (
+                        $cv['url'] === $target_url ||
+                        esc_url_raw($cv['url']) === esc_url_raw($target_url) ||
+                        (!empty($cv['video_id']) && !empty($target_id) && $cv['video_id'] === $target_id)
+                    ) {
+                        $still_present = true;
+                        break;
+                    }
+                }
+
+                if (!$still_present) {
+                    // Video was removed or replaced in the post -> clean up log and skip from email
+                    global $wpdb;
+                    $table = Video_Scanner_Fix_Logger::get_table_name();
+                    $wpdb->delete($table, array('post_id' => $pid, 'video_url' => $target_url), array('%d', '%s'));
+                    continue;
+                }
+
+                // 4. Ensure video was not added to the ignored list
+                if ($this->is_video_ignored($target_url, $target_id)) {
+                    continue;
+                }
+            }
+
+            $validated_issues[] = $issue;
         }
 
-        if (empty($filtered_issues)) {
+        if (empty($validated_issues)) {
             return false;
         }
 
         // Group issues by Post ID
         $grouped_posts = array();
-        foreach ($filtered_issues as $issue) {
+        foreach ($validated_issues as $issue) {
             $pid = $issue['post_id'];
             if (!isset($grouped_posts[$pid])) {
                 $grouped_posts[$pid] = array(
@@ -527,7 +683,7 @@ class Video_Scanner_Fix_Scanner {
         $subject = sprintf(
             __('[Video Scanner Fix] %1$s: %2$d issue(s) detected in %3$d post(s)', 'video-scanner-fix'),
             $scan_title_label,
-            count($filtered_issues),
+            count($validated_issues),
             count($grouped_posts)
         );
 
@@ -550,9 +706,13 @@ class Video_Scanner_Fix_Scanner {
             $message .= __('ISSUES FOUND:', 'video-scanner-fix') . "\n";
 
             foreach ($data['items'] as $item) {
-                $status_label = ($item['status'] === 'geo_restricted')
-                    ? __('Geo-Blocked', 'video-scanner-fix')
-                    : __('Broken', 'video-scanner-fix');
+                if ($item['status'] === 'geo_restricted') {
+                    $status_label = __('Geo-Blocked', 'video-scanner-fix');
+                } elseif ($item['status'] === 'error') {
+                    $status_label = __('Error', 'video-scanner-fix');
+                } else {
+                    $status_label = __('Broken', 'video-scanner-fix');
+                }
                 $message .= sprintf(
                     " - [%s] %s (%s - %s)\n",
                     $status_label,
@@ -601,6 +761,16 @@ class Video_Scanner_Fix_Scanner {
                 return __('Vimeo video unavailable, private, or deleted', 'video-scanner-fix');
             case 'HTTP status code error':
                 return __('HTTP status code error', 'video-scanner-fix');
+            case 'Connection Error':
+                return __('Connection Error', 'video-scanner-fix');
+            case 'Server error or temporarily unavailable':
+                return __('Server error or temporarily unavailable', 'video-scanner-fix');
+            case 'YouTube API server error':
+                return __('YouTube API server error', 'video-scanner-fix');
+            case 'YouTube API quota exceeded':
+                return __('YouTube API quota exceeded', 'video-scanner-fix');
+            case 'Vimeo server error':
+                return __('Vimeo server error', 'video-scanner-fix');
         }
 
         if (preg_match('/^Restricted in target country \((.*)\)$/', $message, $matches)) {

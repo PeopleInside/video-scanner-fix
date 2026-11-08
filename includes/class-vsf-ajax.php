@@ -69,12 +69,14 @@ class Video_Scanner_Fix_Ajax {
         $transient_key = 'vsf_manual_issues_' . get_current_user_id();
         if ($page === 1) {
             delete_transient($transient_key);
+            Video_Scanner_Fix_Logger::clean_orphaned_logs();
         }
 
         $batch_logs = array();
         $batch_issues = array();
         $batch_videos_checked = 0;
         $batch_broken_found = 0;
+        $batch_errors_found = 0;
 
         if ($batch_query->have_posts()) {
             foreach ($batch_query->posts as $post) {
@@ -84,6 +86,9 @@ class Video_Scanner_Fix_Ajax {
                         $batch_videos_checked++;
                         if ($item['status'] === 'broken') {
                             $batch_broken_found++;
+                            $batch_issues[] = $item;
+                        } elseif ($item['status'] === 'error') {
+                            $batch_errors_found++;
                             $batch_issues[] = $item;
                         } elseif ($item['status'] === 'geo_restricted') {
                             $batch_issues[] = $item;
@@ -114,6 +119,7 @@ class Video_Scanner_Fix_Ajax {
                 'posts_scanned'   => $scanned_so_far,
                 'videos_checked'  => isset($current_db_stats['total']) ? $current_db_stats['total'] : 0,
                 'broken_found'    => isset($current_db_stats['broken']) ? $current_db_stats['broken'] : 0,
+                'errors_found'    => isset($current_db_stats['errors']) ? $current_db_stats['errors'] : 0,
                 'completed_at'    => time(),
                 'type'            => 'manual'
             ));
@@ -138,6 +144,7 @@ class Video_Scanner_Fix_Ajax {
             'total_posts'          => $total_posts,
             'batch_videos_checked' => $batch_videos_checked,
             'batch_broken_found'   => $batch_broken_found,
+            'batch_errors_found'   => $batch_errors_found,
             'logs'                 => $batch_logs,
             'stats'                => $stats,
             'message'              => sprintf(
@@ -316,15 +323,8 @@ class Video_Scanner_Fix_Ajax {
                 // Post no longer exists or is in trash -> remove log entry
                 if ($log_id > 0) {
                     Video_Scanner_Fix_Logger::delete_log($log_id);
-                } else {
-                    global $wpdb;
-                    $table = Video_Scanner_Fix_Logger::get_table_name();
-                    if (!empty($video_url)) {
-                        $wpdb->delete($table, array('post_id' => $post_id, 'video_url' => $video_url), array('%d', '%s'));
-                    } else {
-                        $wpdb->delete($table, array('post_id' => $post_id), array('%d'));
-                    }
                 }
+                Video_Scanner_Fix_Logger::delete_logs_by_post_id($post_id);
                 wp_send_json_success(array(
                     'resolved' => true,
                     'message'  => __('The post no longer exists or is in trash. Log entry removed.', 'video-scanner-fix'),

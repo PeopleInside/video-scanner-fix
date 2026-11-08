@@ -48,6 +48,7 @@ class Video_Scanner_Fix_Cron {
 
         delete_option('vsf_cron_scan_queue');
         delete_option('vsf_cron_scan_progress');
+        delete_option('vsf_cron_scan_started_at');
         delete_transient('vsf_cron_scan_lock');
     }
 
@@ -79,10 +80,6 @@ class Video_Scanner_Fix_Cron {
     /**
      * Entry point fired by the weekly/monthly WP-Cron event.
      * Builds the full queue of posts to scan and kicks off batch processing.
-     * BUGFIX (1.0.6): previously this scanned everything in a single request
-     * capped at 240s with no resume, so on many hosts (real PHP time limits
-     * are often lower) the run got cut off and never covered every post,
-     * unlike the manual scan which loops in batches until truly complete.
      */
     public function run_cron_scan() {
         $settings = get_option('vsf_settings', array());
@@ -90,11 +87,17 @@ class Video_Scanner_Fix_Cron {
             return;
         }
 
-        // Avoid starting a second full run while a previous automated scan
-        // is still chaining through its batches.
-        if (get_transient('vsf_cron_scan_lock')) {
-            $existing_queue = get_option('vsf_cron_scan_queue', array());
-            if (!empty($existing_queue) && !wp_next_scheduled('vsf_cron_scan_batch_event')) {
+        // Clean up any orphaned log entries from deleted or trashed posts
+        Video_Scanner_Fix_Logger::clean_orphaned_logs();
+
+        $started_at     = intval(get_option('vsf_cron_scan_started_at', 0));
+        $is_locked      = (bool) get_transient('vsf_cron_scan_lock');
+        $existing_queue = get_option('vsf_cron_scan_queue', array());
+        $is_active_run  = $is_locked && !empty($existing_queue) && ($started_at > 0) && ((time() - $started_at) < 2 * HOUR_IN_SECONDS);
+
+        // If an automated scan is actively chaining its batches within the safe 2-hour window, let it continue
+        if ($is_active_run) {
+            if (!wp_next_scheduled('vsf_cron_scan_batch_event')) {
                 wp_schedule_single_event(time() + 5, 'vsf_cron_scan_batch_event');
                 if (function_exists('spawn_cron')) {
                     spawn_cron();
@@ -103,15 +106,21 @@ class Video_Scanner_Fix_Cron {
             return;
         }
 
-        // If an unfinished queue already exists, resume it instead of wiping it out
-        $existing_queue = get_option('vsf_cron_scan_queue', array());
-        if (!empty($existing_queue)) {
-            set_transient('vsf_cron_scan_lock', 1, 12 * HOUR_IN_SECONDS);
-            self::process_next_batch();
-            return;
+        // Otherwise, any existing queue or progress is stale or from a previous cycle. Clear it completely.
+        delete_option('vsf_cron_scan_queue');
+        delete_option('vsf_cron_scan_progress');
+        delete_option('vsf_cron_scan_started_at');
+        delete_transient('vsf_cron_scan_lock');
+
+        $batch_timestamp = wp_next_scheduled('vsf_cron_scan_batch_event');
+        while ($batch_timestamp) {
+            wp_unschedule_event($batch_timestamp, 'vsf_cron_scan_batch_event');
+            $batch_timestamp = wp_next_scheduled('vsf_cron_scan_batch_event');
         }
 
-        set_transient('vsf_cron_scan_lock', 1, 12 * HOUR_IN_SECONDS);
+        // Start a fresh scheduled scan
+        set_transient('vsf_cron_scan_lock', 1, 2 * HOUR_IN_SECONDS);
+        update_option('vsf_cron_scan_started_at', time(), false);
 
         $post_types = isset($settings['scan_post_types']) ? (array)$settings['scan_post_types'] : array('post', 'page');
         $statuses   = isset($settings['scan_post_statuses']) ? (array)$settings['scan_post_statuses'] : array('publish');
@@ -142,6 +151,16 @@ class Video_Scanner_Fix_Cron {
      * Fired by the short-lived chained event; just continues the queue.
      */
     public function run_cron_scan_batch() {
+        $started_at = intval(get_option('vsf_cron_scan_started_at', 0));
+        // If the scan was started more than 2 hours ago, do not continue processing a stale scan
+        if ($started_at > 0 && (time() - $started_at) > 2 * HOUR_IN_SECONDS) {
+            delete_option('vsf_cron_scan_queue');
+            delete_option('vsf_cron_scan_progress');
+            delete_option('vsf_cron_scan_started_at');
+            delete_transient('vsf_cron_scan_lock');
+            return;
+        }
+
         self::process_next_batch();
     }
 
@@ -184,7 +203,11 @@ class Video_Scanner_Fix_Cron {
 
             foreach ($batch as $pid) {
                 $post = get_post($pid);
-                if (!$post) {
+                // Skip non-existent, trashed, or auto-draft posts
+                if (!$post || $post->post_status === 'trash' || $post->post_status === 'auto-draft') {
+                    if ($pid > 0) {
+                        Video_Scanner_Fix_Logger::delete_logs_by_post_id($pid);
+                    }
                     continue;
                 }
 
@@ -196,6 +219,12 @@ class Video_Scanner_Fix_Cron {
                         $progress['videos_checked']++;
                         if ($item['status'] === 'broken') {
                             $progress['broken_found']++;
+                            $progress['issues'][] = $item;
+                        } elseif ($item['status'] === 'error') {
+                            if (!isset($progress['errors_found'])) {
+                                $progress['errors_found'] = 0;
+                            }
+                            $progress['errors_found']++;
                             $progress['issues'][] = $item;
                         } elseif ($item['status'] === 'geo_restricted') {
                             $progress['issues'][] = $item;
@@ -226,11 +255,18 @@ class Video_Scanner_Fix_Cron {
     private static function finish_scan($progress) {
         delete_option('vsf_cron_scan_queue');
         delete_option('vsf_cron_scan_progress');
+        delete_option('vsf_cron_scan_started_at');
         delete_transient('vsf_cron_scan_lock');
+
+        $batch_timestamp = wp_next_scheduled('vsf_cron_scan_batch_event');
+        while ($batch_timestamp) {
+            wp_unschedule_event($batch_timestamp, 'vsf_cron_scan_batch_event');
+            $batch_timestamp = wp_next_scheduled('vsf_cron_scan_batch_event');
+        }
 
         if (!empty($progress['issues'])) {
             $scanner = new Video_Scanner_Fix_Scanner();
-            $scanner->send_automated_scan_summary_email($progress['issues']);
+            $scanner->send_automated_scan_summary_email($progress['issues'], 'automated');
         }
 
         update_option('vsf_last_scan_time', time());
@@ -238,6 +274,7 @@ class Video_Scanner_Fix_Cron {
             'posts_scanned'   => $progress['scanned_posts'],
             'videos_checked'  => $progress['videos_checked'],
             'broken_found'    => $progress['broken_found'],
+            'errors_found'    => isset($progress['errors_found']) ? $progress['errors_found'] : 0,
             'completed_at'    => time(),
             'type'            => 'cron'
         ));

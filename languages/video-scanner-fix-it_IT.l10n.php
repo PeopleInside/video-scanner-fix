@@ -191,5 +191,14 @@ return array(
     'Vimeo video unavailable, private, or deleted' => 'Video Vimeo non disponibile, privato o eliminato',
     'HTTP status code error' => 'Errore nel codice di stato HTTP',
     'Restricted in target country (%s)' => 'Con restrizioni nel paese di destinazione (%s)',
+    'Errors' => 'Errori',
+    'Error' => 'Errore',
+    'Scan Errors Detected' => 'Errori di Scansione Rilevati',
+    'Click to view errors in logs' => 'Clicca per vedere gli errori nei log',
+    'Connection Error' => 'Errore di Connessione',
+    'Server error or temporarily unavailable' => 'Errore del server o temporaneamente non disponibile',
+    'YouTube API server error' => 'Errore del server API di YouTube',
+    'YouTube API quota exceeded' => 'Quota API di YouTube superata',
+    'Vimeo server error' => 'Errore del server Vimeo',
   )
 );

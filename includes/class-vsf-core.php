@@ -35,6 +35,61 @@ class Video_Scanner_Fix_Core {
 
         // Cron handlers
         $this->cron->init_hooks();
+
+        // Post lifecycle handlers: auto-clean logs when posts are trashed, deleted, or updated
+        add_action('wp_trash_post', array('Video_Scanner_Fix_Logger', 'on_post_trashed_or_deleted'));
+        add_action('before_delete_post', array('Video_Scanner_Fix_Logger', 'on_post_trashed_or_deleted'));
+        add_action('save_post', array($this, 'on_save_post'), 10, 2);
+    }
+
+    /**
+     * When a post is saved or updated, automatically prune any logs for video URLs
+     * that were removed or replaced by the user.
+     */
+    public function on_save_post($post_id, $post) {
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return;
+        }
+        if (!$post || wp_is_post_revision($post_id) || wp_is_post_autosave($post_id)) {
+            return;
+        }
+        if ($post->post_status === 'trash' || $post->post_status === 'auto-draft') {
+            Video_Scanner_Fix_Logger::delete_logs_by_post_id($post_id);
+            return;
+        }
+
+        // If the post has existing logs, verify if any logged video URL was removed
+        global $wpdb;
+        $table = Video_Scanner_Fix_Logger::get_table_name();
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table}'") !== $table) {
+            return;
+        }
+
+        $existing = $wpdb->get_results($wpdb->prepare("SELECT id, video_url FROM {$table} WHERE post_id = %d", $post_id), ARRAY_A);
+        if (!empty($existing)) {
+            $scanner = new Video_Scanner_Fix_Scanner();
+            $all_platform_keys = array_keys($scanner->get_patterns());
+            $found = $scanner->extract_videos_from_text($post->post_content, $all_platform_keys);
+            $settings = get_option('vsf_settings', array());
+            $meta_keys = isset($settings['scan_meta_keys']) ? trim($settings['scan_meta_keys']) : '';
+            if (!empty($meta_keys)) {
+                $keys = array_map('trim', explode(',', $meta_keys));
+                foreach ($keys as $key) {
+                    if (empty($key)) continue;
+                    $meta_val = get_post_meta($post_id, $key, true);
+                    if (is_string($meta_val) && !empty($meta_val)) {
+                        $found = array_merge($found, $scanner->extract_videos_from_text($meta_val, $all_platform_keys));
+                    }
+                }
+            }
+            $found_urls = wp_list_pluck($found, 'url');
+            $found_urls_raw = array_map('esc_url_raw', $found_urls);
+            foreach ($existing as $row) {
+                if (!in_array($row['video_url'], $found_urls, true) && !in_array(esc_url_raw($row['video_url']), $found_urls_raw, true)) {
+                    Video_Scanner_Fix_Logger::delete_log($row['id']);
+                }
+            }
+        }
     }
 
     public function load_textdomain() {
