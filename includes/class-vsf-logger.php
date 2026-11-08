@@ -166,6 +166,7 @@ class Video_Scanner_Fix_Logger {
         $total          = $wpdb->get_var("SELECT COUNT(*) FROM {$table}");
         $broken         = $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE status = 'broken'");
         $valid          = $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE status = 'valid'");
+        $errors         = $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE status = 'error'");
         $ignored        = $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE status = 'ignored'");
         $geo_restricted = $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE status = 'geo_restricted'");
 
@@ -173,6 +174,7 @@ class Video_Scanner_Fix_Logger {
             'total'          => intval($total),
             'broken'         => intval($broken),
             'valid'          => intval($valid),
+            'errors'         => intval($errors),
             'ignored'        => intval($ignored),
             'geo_restricted' => intval($geo_restricted)
         );
@@ -219,6 +221,26 @@ class Video_Scanner_Fix_Logger {
         global $wpdb;
         $table = self::get_table_name();
         return $wpdb->delete($table, array('id' => $id), array('%d'));
+    }
+
+    public static function delete_logs_by_post_id($post_id) {
+        global $wpdb;
+        $table = self::get_table_name();
+        return $wpdb->delete($table, array('post_id' => intval($post_id)), array('%d'));
+    }
+
+    public static function on_post_trashed_or_deleted($post_id) {
+        if ($post_id > 0) {
+            self::delete_logs_by_post_id($post_id);
+        }
+    }
+
+    public static function clean_orphaned_logs() {
+        global $wpdb;
+        $table = self::get_table_name();
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table}'") === $table) {
+            $wpdb->query("DELETE l FROM {$table} l LEFT JOIN {$wpdb->posts} p ON l.post_id = p.ID WHERE l.post_id > 0 AND (p.ID IS NULL OR p.post_status = 'trash' OR p.post_status = 'auto-draft')");
+        }
     }
 
     public static function clear_all_logs() {

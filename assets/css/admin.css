@@ -103,6 +103,7 @@
 
 .vsf-stat-total { border-left-color: #2271b1; }
 .vsf-stat-broken { border-left-color: #d63638; }
+.vsf-stat-errors { border-left-color: #e11d48; }
 .vsf-stat-valid { border-left-color: #00a32a; }
 .vsf-stat-cron { border-left-color: #dba617; }
 
@@ -227,6 +228,7 @@
 }
 
 .vsf-log-entry-broken { color: #ff6b6b; }
+.vsf-log-entry-error { color: #f87171; }
 .vsf-log-entry-valid { color: #51cf66; }
 .vsf-log-entry-ignored { color: #fcc419; }
 .vsf-log-entry-info { color: #339af0; }

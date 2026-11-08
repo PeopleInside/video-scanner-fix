@@ -51,6 +51,7 @@
             if (!stats) return;
             if (stats.total !== undefined) $('.vsf-stat-total .vsf-stat-number').text(stats.total);
             if (stats.broken !== undefined) $('.vsf-stat-broken .vsf-stat-number').text(stats.broken);
+            if (stats.errors !== undefined) $('.vsf-stat-clickable[data-filter="error"] .vsf-stat-number, .vsf-stat-errors .vsf-stat-number').text(stats.errors);
             if (stats.valid !== undefined) $('.vsf-stat-valid .vsf-stat-number').text(stats.valid);
             if (stats.geo_restricted !== undefined) $('.vsf-stat-clickable[data-filter="geo_restricted"] .vsf-stat-number').text(stats.geo_restricted);
             if (stats.ignored !== undefined) $('.vsf-stat-clickable[data-filter="ignored"] .vsf-stat-number').text(stats.ignored);
@@ -101,6 +102,8 @@
 
                             if (statusLower === 'broken') {
                                 badgeHtml = '<span class="vsf-badge vsf-badge-danger">' + (vsf_vars.strings.broken || 'Broken') + '</span>';
+                            } else if (statusLower === 'error') {
+                                badgeHtml = '<span class="vsf-badge" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;">' + (vsf_vars.strings.error || 'Error') + '</span>';
                             } else if (statusLower === 'geo_restricted') {
                                 badgeHtml = '<span class="vsf-badge" style="background:#f3e8ff; color:#7e22ce; border:1px solid #d8b4fe;">' + (vsf_vars.strings.geo_blocked || 'Geo Blocked') + '</span>';
                             } else if (statusLower === 'ignored') {
@@ -463,6 +466,9 @@
                     if (data.stats) {
                         $('.vsf-stat-total .vsf-stat-number').text(data.stats.total);
                         $('.vsf-stat-broken .vsf-stat-number').text(data.stats.broken);
+                        if (data.stats.errors !== undefined) {
+                            $('.vsf-stat-clickable[data-filter="error"] .vsf-stat-number, .vsf-stat-errors .vsf-stat-number').text(data.stats.errors);
+                        }
                         $('.vsf-stat-valid .vsf-stat-number').text(data.stats.valid);
                         $('.vsf-stat-clickable[data-filter="geo_restricted"] .vsf-stat-number').text(data.stats.geo_restricted);
                         $('.vsf-stat-clickable[data-filter="ignored"] .vsf-stat-number').text(data.stats.ignored);
@@ -475,6 +481,8 @@
                             var cssClass = 'vsf-log-entry-valid';
                             if (statusLower === 'broken') {
                                 cssClass = 'vsf-log-entry-broken';
+                            } else if (statusLower === 'error') {
+                                cssClass = 'vsf-log-entry-error';
                             } else if (statusLower === 'ignored') {
                                 cssClass = 'vsf-log-entry-ignored';
                             }
