@@ -1,82 +1,101 @@
 === Video Scanner Fix ===
 Contributors: peopleinside
-Tags: video link checker, broken video scanner, youtube scanner, vimeo, video embed checker
-Requires at least: 5.6
-Tested up to: 7.1
-Stable tag: 1.1.3
+Requires at least: 6.5
+Tested up to: 7.1.4
+Requires PHP: 7.4
+Stable tag: 1.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Automatically & manually scan WordPress posts and custom fields for broken or missing video embeds and links.
+Scans WordPress posts and custom fields for broken video links and embeds, featuring automated schedules, real-time manual scanning, and action triggers.
 
 == Description ==
 
-Video Scanner Fix is a powerful, lightweight, and modern WordPress plugin built by peopleinside to identify broken, deleted, or blocked video links across YouTube, Vimeo, DailyMotion, Google Drive, Archive.org, DoodStream, and MixCloud.
+A comprehensive WordPress plugin to scan broken videos.
 
-== Features ==
-* Real-Time Manual Batch Scanner with progress updates (No Admin freezes)
-* Single Post Meta Box Scanner
-* Automated WP-Cron Background Schedule (Hourly, Twice Daily, Daily, Weekly, Monthly)
-* Automatic actions: Mark post as draft/private, tag broken posts, send email notifications
-* Custom Meta Key Scanning
-* Detailed Log History with CSV Export and Clear Log capabilities
-* Automatic plugin updates from GitHub Releases
+= Features =
+
+* Scans posts and custom fields for broken video links and embeds
+* Supports multiple platforms: YouTube, Vimeo, Dailymotion, Google Drive, Archive.org, Doodstream, Mixcloud
+* Automated scanning with configurable schedules (hourly, twice daily, daily)
+* Real-time manual scanning
+* Action triggers: change post status, add tags, send notifications
+* API integration for YouTube and Vimeo to check video availability
+* Detailed logging of scan results
+* Configurable scan parameters (post types, post statuses, meta keys, link types)
+* Batch processing to handle large sites efficiently
+* Automatic updates from GitHub Releases
+
+= How it works =
+
+The plugin scans your WordPress content for video links and embeds, then checks if they are still accessible. When a broken video is found, you can configure automatic actions such as changing the post status to draft or private, adding a tag, or sending an email notification.
+
+= API Support =
+
+* YouTube: Requires a YouTube Data API v3 key for accurate video status checking
+* Vimeo: Requires a Vimeo API token for accurate video status checking
+* Other platforms: Basic HTTP checks are performed
 
 == Installation ==
 
-1. Upload the `video-scanner-fix` folder to the `/wp-content/plugins/` directory.
-2. Activate the plugin through the 'Plugins' menu in WordPress.
-3. Configure settings under Video Scanner in your WordPress admin bar.
+1. Upload the plugin to the `/wp-content/plugins/` directory, or install it through the WordPress plugins screen directly.
+2. Activate the plugin through the 'Plugins' screen in WordPress.
+3. Go to Tools > Video Scanner Fix to configure the plugin.
+4. Set up your API keys if you want to use YouTube or Vimeo API checks.
+5. Configure the scan parameters and schedule according to your needs.
+
+== Frequently Asked Questions ==
+
+= Do I need API keys? =
+
+API keys are optional but recommended for YouTube and Vimeo. Without API keys, the plugin performs basic HTTP checks which may not be as accurate for detecting private, deleted, or restricted videos.
+
+= How does the automatic scheduling work? =
+
+The plugin uses WordPress cron to run scans at your configured interval. You can choose hourly, twice daily, or daily scans. Note that WordPress cron is triggered by site visits, so very low-traffic sites may not run scans as frequently as configured.
+
+= Can I exclude certain posts or post types? =
+
+Yes, you can configure which post types and post statuses to scan. You can also specify which custom fields (meta keys) to scan for video links.
+
+= What happens when a broken video is found? =
+
+You can configure the plugin to:
+* Change the post status (draft, private, or no change)
+* Add a specific tag to the post
+* Send an email notification to the admin
+
+= Is the plugin compatible with multisite? =
+
+Yes, the plugin works on multisite installations. Each site has its own configuration and scan results.
+
+== Screenshots ==
+
+1. Main dashboard showing scan statistics and recent activity
+2. Settings page with scan configuration options
+3. Scan results with detailed information about broken videos
+4. Log viewer showing scan history
+
+== Disclaimer ==
+
+This software is provided "AS IS", without any warranty. While it has been tested and reasonable efforts are made to ensure security and reliability, no guarantees are provided. As an open project, anyone may contribute or report issues, but this does not imply endorsement or liability from the maintainers.
+
+You use this software entirely at your own risk. The authors and contributors are not liable for any damages, data loss, or unexpected behavior resulting from its use, modification, or distribution. Always review and test the code independently before deploying it in critical or production environments.
 
 == Changelog ==
 
+= 1.1.4 =
+* Fix: the GitHub package host allowlist now includes the release CDN host, which could silently block the download of the update package.
+* Change: GitHub release cache reduced from 12 to 2 hours, so new releases are detected sooner.
+* Tested up to WordPress 7.1.4.
+
 = 1.1.3 =
-* Fixed: Automated scheduled scans could re-report previously resolved or deleted videos in summary email alerts. Scan queues and progress states older than 2 hours are now treated as stale and reset so that each scheduled cycle starts with a fresh queue.
-* Fixed: Summary email notifications now re-validate all detected issues against current WordPress post state before sending, ensuring deleted posts, posts in trash, and videos that were removed or replaced are never reported.
-* Fixed: Added automatic cleanup of scan log entries when posts are moved to trash, deleted permanently, or saved with video links removed in WordPress.
-* Added: Dedicated error tracking and logs section. Transient network issues, cURL timeouts, HTTP 5xx server errors, and YouTube API quota limits are now classified as "Error" (distinct from "Broken").
-* Added: Error counter in the Dashboard widget (Total, Valid, Broken, Geo Blocked, Ignored, Errors), statistics overview cards (Total, Valid, Broken, Geo-Restricted, Ignored, Errors, WP-Cron Schedule), and a dedicated "Errors" filter tab with log entries and re-check capability.
-
-= 1.1.2 =
-* Changed: Updated the display order of the scan status summary to Total, Valid, Broken, Geo Blocked, Ignored in both the WordPress dashboard widget and the plugin settings page.
-
-= 1.1.1 =
-* Fixed: Automated WP-Cron scan stalled or failed to send summary email reports on sites with multiple batches. Batches now loop within a safe execution time window, properly chain remaining items using spawn_cron(), preserve active scan queues without premature reset, and clean up chained events on schedule reset.
-* Fixed: Email notifications now include proper From and UTF-8 charset headers for reliable mail delivery across various hosting environments.
-* Added: Option to also send the summary email report at the end of manual batch scans if broken or unreachable videos are found.
-
-= 1.1.0 =
-* Fixed: Log History pagination now correctly calculates and displays the total number of pages and enables next/last page buttons on initial load instead of showing "Page 1 of 1".
-* Updated: Clarified email alert descriptions in the "Actions & Alerts" settings tab, specifying that email notifications are sent only when broken or unreachable video issues are detected during automated background scans.
-
-= 1.0.9 =
-* Improve update - fix
-
-= 1.0.8 =
-* Added: The automated scan summary email is now translated. When WordPress (and therefore the plugin) uses Italian, the email subject, body and the scan result messages are sent in Italian; all other languages keep the original English text.
-* Fixed: On WordPress 6.5 and 6.6 sites using a language other than Italian, the plugin could be displayed in Italian.
-* Removed: Unused, duplicate and invalid translation files. Italian is now provided only by `languages/video-scanner-fix-it_IT.po` and `languages/video-scanner-fix-it_IT.l10n.php`.
-
-= 1.0.6 =
-* Fixed: Automated (scheduled) scans now cover every matching post, just like a manual scan. Previously the automated run scanned everything in a single pass capped at 240 seconds with no resume mechanism, so on hosts with a lower real PHP execution limit — or on sites with many posts — it silently stopped partway through and never finished the full site. The scan now proceeds in short chained batches (like the manual scan) until the entire queue is processed, before recording "Last Scan" and sending the summary email.
+* Track scan errors and prevent stale alerts.
 
 = 1.0.5 =
-* Fixed: "Last Scan" date/time could be off by twice the site's UTC offset when falling back to the log table timestamp (double timezone conversion between local `current_time('mysql')` values and `wp_date()`).
-* Fixed: Saving any settings tab (e.g. Platforms or Filters) no longer resets the WP-Cron schedule anchor to "now"; the recurring schedule is only touched when the cron enabled state or interval actually changes, preserving the intended weekly/monthly cadence.
+* Initial stable release.
 
-= 1.0.4 =
-* Fixed: WP-Cron automated scheduled scan now reliably scans all configured post types and statuses instead of an arbitrary random subset.
-* Fixed: Corrected Last Scan and Next Scheduled Scan date and time synchronization in the dashboard widget and settings page.
-* Fixed: Registered custom WP-Cron intervals ('weekly' and 'monthly') globally to ensure recurring background scans execute reliably without dropped schedules.
-* Fixed: Corrected database column query fallback (`created_at`) when reading the most recent scan entry from logs.
-* Fixed: Scan timestamp (`vsf_last_scan_time`) is now accurately updated only upon successful completion of a scan with genuine log data.
+== Upgrade Notice ==
 
-= 1.0.3 =
-* Added: Automatic fallback to latest log entry timestamp for last scan date display if empty.
-* Fixed: Updated WP-Cron background scan execution to automatically update last scan date/time (`vsf_last_scan_time`).
-* Fixed: Enhanced WordPress textdomain loading and full Italian localization strings coverage.
-
-= 1.0.1 =
-* Added: CSV export of the Log History table (Log History tab > Export CSV).
-* Added: automatic plugin updates via GitHub Releases.
-* Fixed: YouTube API key and video ID are now properly URL-encoded when calling the YouTube Data API.
+= 1.1.4 =
+Important update: fixes an issue where GitHub release downloads could be silently blocked. All users should update to this version.
