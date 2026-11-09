@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
-define('VSF_VERSION', '1.1.3');
+define('VSF_VERSION', '1.1.4');
 define('VSF_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('VSF_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('VSF_PLUGIN_BASENAME', plugin_basename(__FILE__));
