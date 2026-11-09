@@ -1,12 +1,10 @@
 <?php
-
 /**
  * Aggiornamento del plugin tramite le GitHub Releases del repository
  * ufficiale, integrato nel meccanismo nativo di WordPress (stessa
  * interfaccia "Aggiornamento disponibile" nella pagina Plugin, stesso
  * bottone "Aggiorna ora", compatibile con gli auto-update automatici se
  * l'utente li attiva per questo plugin).
- *
  *
  * IMPORTANTE: questa classe deve essere istanziata anche fuori da wp-admin
  * (wp-cron e WP-CLI), altrimenti gli aggiornamenti automatici non partono.
@@ -48,7 +46,13 @@ class Video_Scanner_Fix_Updater {
 
     /** Cache transient per non interrogare GitHub ad ogni caricamento admin. */
     const CACHE_KEY = 'vsf_github_latest_release';
-    const CACHE_TTL = 12 * HOUR_IN_SECONDS;
+    
+    /**
+     * FIX: Ridotto da 12 ore a 2 ore per un rilevamento più reattivo delle
+     * nuove release. La cache negativa resta a 15 minuti per proteggere dal
+     * rate limiting di GitHub.
+     */
+    const CACHE_TTL = 2 * HOUR_IN_SECONDS;
 
     /**
      * TTL breve per ricordare un controllo FALLITO (rete giù, rate limit di
@@ -248,6 +252,10 @@ class Video_Scanner_Fix_Updater {
     /**
      * Verifica che un URL fornito da GitHub punti a un host GitHub
      * legittimo, in HTTPS.
+     * 
+     * FIX: Aggiunto 'github-releases.githubusercontent.com' alla whitelist.
+     * Questo dominio è usato da GitHub per servire gli asset delle release
+     * e senza di esso il download viene bloccato silenziosamente.
      */
     private function is_trusted_github_url( string $url ): bool {
         $parts = wp_parse_url( $url );
@@ -258,7 +266,13 @@ class Video_Scanner_Fix_Updater {
             return false;
         }
         $host = strtolower( $parts['host'] );
-        return in_array( $host, array( 'github.com', 'api.github.com', 'codeload.github.com', 'objects.githubusercontent.com' ), true );
+        return in_array( $host, array( 
+            'github.com', 
+            'api.github.com', 
+            'codeload.github.com', 
+            'objects.githubusercontent.com',
+            'github-releases.githubusercontent.com' // FIX: Aggiunto per permettere il download degli asset
+        ), true );
     }
 
     /**
