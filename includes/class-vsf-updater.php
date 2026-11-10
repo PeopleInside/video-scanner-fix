@@ -257,23 +257,23 @@ class Video_Scanner_Fix_Updater {
      * Questo dominio è usato da GitHub per servire gli asset delle release
      * e senza di esso il download viene bloccato silenziosamente.
      */
-    private function is_trusted_github_url( string $url ): bool {
-        $parts = wp_parse_url( $url );
-        if ( ! is_array( $parts ) || empty( $parts['scheme'] ) || empty( $parts['host'] ) ) {
-            return false;
-        }
-        if ( 'https' !== $parts['scheme'] ) {
-            return false;
-        }
-        $host = strtolower( $parts['host'] );
-        return in_array( $host, array( 
-            'github.com', 
-            'api.github.com', 
-            'codeload.github.com', 
-            'objects.githubusercontent.com',
-            'github-releases.githubusercontent.com' // FIX: Aggiunto per permettere il download degli asset
-        ), true );
+private function is_trusted_github_url( string $url ): bool {
+    $parts = wp_parse_url( $url );
+    if ( ! is_array( $parts ) || empty( $parts['scheme'] ) || empty( $parts['host'] ) ) {
+        return false;
     }
+    if ( 'https' !== $parts['scheme'] ) {
+        return false;
+    }
+    $host = strtolower( $parts['host'] );
+    return in_array( $host, array(
+        'github.com',
+        'api.github.com',
+        'codeload.github.com',
+        'objects.githubusercontent.com',
+        'github-releases.githubusercontent.com'
+    ), true );
+}
 
     /**
      * Inserisce le informazioni di aggiornamento nel transient
