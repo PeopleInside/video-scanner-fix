@@ -84,6 +84,9 @@ You use this software entirely at your own risk. The authors and contributors ar
 
 == Changelog ==
 
+= 1.1.5 =
+* self-update process improvement
+
 = 1.1.4 =
 * Fix: the GitHub package host allowlist now includes the release CDN host, which could silently block the download of the update package.
 * Change: GitHub release cache reduced from 12 to 2 hours, so new releases are detected sooner.
